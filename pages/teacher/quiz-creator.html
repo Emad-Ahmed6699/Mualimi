@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منشئ الاختبارات - معلمي</title>
+    <!-- Bootstrap 5 RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body class="fade-in">
+
+    <!-- Mobile Toggle Button -->
+    <button class="mobile-toggle" title="تبديل القائمة">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="text-center mb-4">
+            <h3 class="fw-bold text-primary">معلمي</h3>
+            <span class="badge bg-primary">لوحة الإدارة</span>
+        </div>
+        <div class="nav flex-column">
+            <a href="../../teacher-dashboard.html" class="nav-link"><i class="fas fa-home me-2"></i> الرئيسة</a>
+            <a href="groups.html" class="nav-link"><i class="fas fa-users me-2"></i> المجموعات</a>
+            <a href="attendance.html" class="nav-link"><i class="fas fa-clipboard-check me-2"></i> الحضور والغياب</a>
+            <a href="quiz-creator.html" class="nav-link active"><i class="fas fa-plus-circle me-2"></i> منشئ الاختبارات</a>
+            <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar me-2"></i> التقارير والنتائج</a>
+            <hr>
+            <a href="../../index.html" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="mb-4">
+            <h2 class="fw-bold">منشئ الاختبارات</h2>
+            <p class="text-muted">صمم اختبارات تفاعلية لطلابك</p>
+        </header>
+
+        <div class="card m-card p-4">
+            <div class="mb-4 border-bottom pb-3">
+                <h5 class="fw-bold"><i class="fas fa-info-circle me-2 text-primary"></i>معلومات الاختبار</h5>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <label for="quiz-title" class="form-label">عنوان الاختبار</label>
+                        <input type="text" id="quiz-title" class="form-control" placeholder="مثلاً: اختبار النحو الشامل">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="target-group" class="form-label">المجموعة المستهدفة</label>
+                        <select id="target-group" class="form-select">
+                            <option>المجموعة أ</option>
+                            <option>المجموعة ب</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="quiz-duration" class="form-label">مدة الاختبار (بالدقائق)</label>
+                        <input type="number" id="quiz-duration" class="form-control" value="30">
+                    </div>
+                </div>
+            </div>
+
+            <div id="questions-container">
+                <div class="card border p-3 mb-3 bg-light">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h6 class="fw-bold">سؤال 1</h6>
+                        <button class="btn btn-sm btn-outline-danger" title="حذف السؤال"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <textarea class="form-control mb-3" placeholder="اكتب السؤال هنا..."></textarea>
+                    <div class="row g-2">
+                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 1"></div>
+                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 2"></div>
+                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 3"></div>
+                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="add-question-btn" class="btn btn-outline-primary w-100 mb-4"><i class="fas fa-plus me-2"></i>إضافة سؤال جديد</button>
+
+            <div class="d-flex justify-content-between">
+                <button id="save-draft-btn" class="btn btn-secondary px-4">حفظ كمسودة</button>
+                <button id="publish-quiz-btn" class="btn btn-primary px-5">نشر الاختبار الآن</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="../../assets/js/main.js"></script>
+</body>
+</html>

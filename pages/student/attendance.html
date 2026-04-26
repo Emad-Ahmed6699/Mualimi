@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سجل حضوري - معلمي</title>
+    <!-- Bootstrap 5 RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        body { padding-bottom: 80px; }
+        .student-header {
+            background-color: #fff;
+            padding: 20px;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .att-status {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body class="fade-in">
+
+    <header class="student-header">
+        <div class="d-flex align-items-center mb-2">
+            <a href="../../student-dashboard.html" class="text-dark me-3" title="العودة للرئيسة"><i class="fas fa-arrow-right"></i></a>
+            <h4 class="fw-bold mb-0">سجل الحضور</h4>
+        </div>
+        <p class="text-muted small mb-0">متابعة أيام الحضور والغياب</p>
+    </header>
+
+    <div class="container">
+        <div class="card m-card p-4 mb-4">
+            <div class="row text-center">
+                <div class="col-4">
+                    <h4 class="fw-bold text-success">22</h4>
+                    <p class="small text-muted mb-0">حضور</p>
+                </div>
+                <div class="col-4">
+                    <h4 class="fw-bold text-danger">1</h4>
+                    <p class="small text-muted mb-0">غياب</p>
+                </div>
+                <div class="col-4">
+                    <h4 class="fw-bold text-warning">0</h4>
+                    <p class="small text-muted mb-0">تأخير</p>
+                </div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold mb-3">السجل الأخير</h6>
+        <div class="list-group">
+            <div class="list-group-item d-flex justify-content-between align-items-center border-0 shadow-sm rounded mb-2">
+                <div>
+                    <span class="att-status bg-success"></span>
+                    الأحد، 28 أبريل
+                </div>
+                <span class="text-success small">حاضر</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center border-0 shadow-sm rounded mb-2">
+                <div>
+                    <span class="att-status bg-success"></span>
+                    الإثنين، 29 أبريل
+                </div>
+                <span class="text-success small">حاضر</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between align-items-center border-0 shadow-sm rounded mb-2">
+                <div>
+                    <span class="att-status bg-danger"></span>
+                    الثلاثاء، 30 أبريل
+                </div>
+                <span class="text-danger small">غائب</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="../../student-dashboard.html" class="nav-item">
+            <i class="fas fa-home"></i>
+            الرئيسة
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-book"></i>
+            الاختبارات
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fas fa-comment-alt"></i>
+            الرسائل
+        </a>
+        <a href="../../index.html" class="nav-item text-danger">
+            <i class="fas fa-sign-out-alt"></i>
+            خروج
+        </a>
+    </nav>
+
+    <script src="../../assets/js/main.js"></script>
+</body>
+</html>

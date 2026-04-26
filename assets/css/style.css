@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900;1000&display=swap');
+
+:root {
+    --primary-color: #3498db;
+    --bg-color: #f8f9fa;
+    --sidebar-width: 250px;
+    --transition-speed: 0.3s;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--bg-color);
+    direction: rtl;
+    text-align: right;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.chart-placeholder {
+    height: 200px;
+}
+
+.border-success-custom {
+    border-right-color: #2ecc71 !important;
+}
+
+.max-width-400 {
+    max-width: 400px;
+}
+
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: #fff;
+    color: #333;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    z-index: 9999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.toast-notification.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast-notification.success {
+    border-right: 5px solid #2ecc71;
+}
+
+.toast-notification.info {
+    border-right: 5px solid #3498db;
+}
+
+.toast-notification.error {
+    border-right: 5px solid #e74c3c;
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn var(--transition-speed) ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Custom Card Style */
+.m-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: transform var(--transition-speed);
+}
+
+.m-card:hover {
+    transform: translateY(-5px);
+}
+
+.sidebar.show {
+    display: block !important;
+    width: 100%;
+}
+
+.main-content {
+    margin-right: var(--sidebar-width);
+    padding: 30px;
+    transition: margin-right var(--transition-speed);
+}
+
+/* Sidebar for Teacher */
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: #fff;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 1000;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.05);
+    padding-top: 20px;
+    transition: transform var(--transition-speed);
+}
+
+.sidebar .nav-link {
+    color: #333;
+    padding: 12px 20px;
+    margin: 5px 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: #fff !important;
+}
+
+.sidebar .nav-link i {
+    width: 25px;
+}
+
+.mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 1100;
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Student Bottom Nav */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: #fff;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    z-index: 1000;
+}
+
+.bottom-nav .nav-item {
+    text-align: center;
+    color: #999;
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+
+.bottom-nav .nav-item.active {
+    color: var(--primary-color);
+}
+
+.bottom-nav .nav-item i {
+    display: block;
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(100%);
+        display: block;
+    }
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-right: 0;
+    }
+    .mobile-toggle {
+        display: block;
+    }
+}
