@@ -71,7 +71,22 @@
         </div>
     </div>
 
+    <script src="assets/js/api.js"></script>
     <script src="assets/js/main.js"></script>
+    <script>
+        // Ensure selectRole is available immediately
+        if (!window.selectRole) {
+            window.selectRole = (role) => {
+                console.log('Selecting role:', role);
+                localStorage.setItem('mualimi_role', role);
+                if (role === 'teacher') {
+                    window.location.href = 'teacher-dashboard.html';
+                } else {
+                    window.location.href = 'student-dashboard.html';
+                }
+            };
+        }
+    </script>
 
 </body>
 </html>

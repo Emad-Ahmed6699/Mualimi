@@ -1,7 +1,76 @@
 // Mualimi - Main JavaScript Logic
+const API_URL = 'http://localhost:5000/api';
 
-document.addEventListener('DOMContentLoaded', () => {
+// Global function for role selection - MUST be defined BEFORE DOMContentLoaded
+window.selectRole = (role) => {
+    console.log('Selecting role:', role);
+    localStorage.setItem('mualimi_role', role);
+    if (role === 'teacher') {
+        window.location.href = 'teacher-dashboard.html';
+    } else {
+        window.location.href = 'student-dashboard.html';
+    }
+};
+
+// Notification utility
+function showNotification(message, type = 'success') {
+    const notificationHtml = `
+        <div class="alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('afterbegin', notificationHtml);
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        if (alerts.length > 0) {
+            alerts[0].remove();
+        }
+    }, 3000);
+}
+
+// Load dashboard data based on role
+async function loadDashboardData() {
+    const role = localStorage.getItem('mualimi_role') || 'student';
+    
+    try {
+        if (role === 'teacher' && window.location.pathname.includes('teacher')) {
+            // Load teacher dashboard data
+            const studentCount = document.querySelector('[data-student-count]');
+            if (studentCount) {
+                const response = await api.getAllStudents();
+                studentCount.innerText = response.count || 0;
+            }
+
+            const quizCount = document.querySelector('[data-quiz-count]');
+            if (quizCount) {
+                const response = await api.getAllQuizzes();
+                quizCount.innerText = response.count || 0;
+            }
+        } else if (role === 'student' && window.location.pathname.includes('student')) {
+            // Load student dashboard data
+            const quizCount = document.querySelector('#active-quizzes-count');
+            if (quizCount) {
+                const response = await api.getActiveQuizzes();
+                quizCount.innerText = `لديك ${response.count || 0} اختبار جديد`;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Mualimi System Initialized');
+    
+    // Test backend connection
+    try {
+        const health = await api.checkHealth();
+        console.log('✅ Connected to Backend:', health.message);
+    } catch (error) {
+        console.error('❌ Backend Connection Failed:', error);
+        showNotification('خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم.', 'error');
+    }
 
     // --- Sidebar & Navigation ---
 
@@ -20,15 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // Role Selection Logic (for index.html)
-    window.selectRole = (role) => {
-        if (role === 'teacher') {
-            window.location.href = 'teacher-dashboard.html';
-        } else {
-            window.location.href = 'student-dashboard.html';
-        }
-    };
 
     // Logout Confirmation
     const logoutLinks = document.querySelectorAll('a[href*="index.html"]');
@@ -94,6 +154,58 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Load and display dashboard data
+    await loadDashboardData();
+});
+
+// Notification utility
+function showNotification(message, type = 'success') {
+    const notificationHtml = `
+        <div class="alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('afterbegin', notificationHtml);
+    setTimeout(() => {
+        const alerts = document.querySelectorAll('.alert');
+        if (alerts.length > 0) {
+            alerts[0].remove();
+        }
+    }, 3000);
+}
+
+// Load dashboard data based on role
+async function loadDashboardData() {
+    const role = localStorage.getItem('mualimi_role') || 'student';
+    
+    try {
+        if (role === 'teacher' && window.location.pathname.includes('teacher')) {
+            // Load teacher dashboard data
+            const studentCount = document.querySelector('[data-student-count]');
+            if (studentCount) {
+                const response = await api.getAllStudents();
+                studentCount.innerText = response.count || 0;
+            }
+
+            const quizCount = document.querySelector('[data-quiz-count]');
+            if (quizCount) {
+                const response = await api.getAllQuizzes();
+                quizCount.innerText = response.count || 0;
+            }
+        } else if (role === 'student' && window.location.pathname.includes('student')) {
+            // Load student dashboard data
+            const quizCount = document.querySelector('#active-quizzes-count');
+            if (quizCount) {
+                const response = await api.getActiveQuizzes();
+                quizCount.innerText = `لديك ${response.count || 0} اختبار جديد`;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
 
     // --- Reports & Charts ---
     const gradesCtx = document.getElementById('gradesChart');
