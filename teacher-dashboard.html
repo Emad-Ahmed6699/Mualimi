@@ -27,11 +27,10 @@
         <div class="nav flex-column">
             <a href="#" class="nav-link active"><i class="fas fa-home me-2"></i> الرئيسة</a>
             <a href="pages/teacher/groups.html" class="nav-link"><i class="fas fa-users me-2"></i> المجموعات</a>
-            <a href="pages/teacher/attendance.html" class="nav-link"><i class="fas fa-clipboard-check me-2"></i> الحضور والغياب</a>
             <a href="pages/teacher/quiz-creator.html" class="nav-link"><i class="fas fa-plus-circle me-2"></i> منشئ الاختبارات</a>
             <a href="pages/teacher/reports.html" class="nav-link"><i class="fas fa-chart-bar me-2"></i> التقارير والنتائج</a>
             <hr>
-            <a href="index.html" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
+            <a href="javascript:void(0)" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
         </div>
     </nav>
 
@@ -39,15 +38,15 @@
     <main class="main-content">
         <header class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="fw-bold">مرحباً، أستاذ محمد  </h2>
+                <h2 class="fw-bold">مرحباً، <span id="display-teacher-name">أستاذ</span></h2>
                 <p class="text-muted">إليك نظرة عامة على نشاطك اليوم</p>
             </div>
             <div class="d-flex align-items-center">
                 <div class="me-3 text-end">
-                    <p class="mb-0 fw-bold">محمد</p>
+                    <p class="mb-0 fw-bold" id="display-teacher-name-side">المعلم</p>
                     <small class="text-muted">مشرف أكاديمي</small>
                 </div>
-                <img src="https://ui-avatars.com/api/?name=Mohamed+Al-Fouli&background=3498db&color=fff" class="rounded-circle" width="50" alt="Avatar">
+                <div id="avatar-container"></div>
             </div>
         </header>
 
@@ -56,28 +55,28 @@
             <div class="col-md-3">
                 <div class="card m-card p-3 text-center">
                     <h5 class="text-muted mb-2">إجمالي الطلاب</h5>
-                    <h2 class="fw-bold">150</h2>
+                    <h2 class="fw-bold" id="total-students-count">0</h2>
                     <div class="text-success small"><i class="fas fa-arrow-up"></i> 12% هذا الشهر</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card m-card p-3 text-center">
                     <h5 class="text-muted mb-2">الاختبارات النشطة</h5>
-                    <h2 class="fw-bold">4</h2>
+                    <h2 class="fw-bold" id="active-quizzes-count">0</h2>
                     <div class="text-primary small">جاري التقديم</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card m-card p-3 text-center">
-                    <h5 class="text-muted mb-2">نسبة الحضور</h5>
-                    <h2 class="fw-bold">94%</h2>
-                    <div class="text-info small">مستوى ممتاز</div>
+                    <h5 class="text-muted mb-2">متوسط الدرجات</h5>
+                    <h2 class="fw-bold" id="avg-grade-display">0%</h2>
+                    <div class="text-info small">أداء متصاعد</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card m-card p-3 text-center">
                     <h5 class="text-muted mb-2">تنبيهات معلقة</h5>
-                    <h2 class="fw-bold text-danger">3</h2>
+                    <h2 class="fw-bold text-danger" id="pending-alerts-count">0</h2>
                     <div class="text-danger small">تحتاج مراجعة</div>
                 </div>
             </div>
@@ -133,7 +132,6 @@
                     <h5 class="fw-bold mb-4">أدوات سريعة</h5>
                     <div class="d-grid gap-2">
                         <button class="btn btn-outline-primary text-start" onclick="window.location.href='pages/teacher/groups.html'"><i class="fas fa-user-plus me-2"></i> تسجيل طالب جديد</button>
-                        <button class="btn btn-outline-primary text-start" onclick="window.location.href='pages/teacher/attendance.html'"><i class="fas fa-file-export me-2"></i> تصدير تقرير الغياب</button>
                         <button id="message-parents-btn" class="btn btn-outline-primary text-start"><i class="fas fa-envelope me-2"></i> مراسلة أولياء الأمور</button>
                     </div>
                 </div>
@@ -143,5 +141,28 @@
 
     <script src="assets/js/api.js"></script>
     <script src="assets/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const role = localStorage.getItem('mualimi_role');
+            const name = localStorage.getItem('mualimi_user_name') || 'المعلم';
+            
+            if (role !== 'teacher') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Update names
+            document.querySelectorAll('#display-teacher-name, #display-teacher-name-side').forEach(el => {
+                el.textContent = name;
+            });
+
+            // Update Avatar
+            const avatarContainer = document.getElementById('avatar-container');
+            if (avatarContainer) {
+                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff`;
+                avatarContainer.innerHTML = `<img src="${avatarUrl}" class="rounded-circle shadow-sm" width="50" alt="Avatar">`;
+            }
+        });
+    </script>
 </body>
 </html>

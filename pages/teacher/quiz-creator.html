@@ -27,7 +27,6 @@
         <div class="nav flex-column">
             <a href="../../teacher-dashboard.html" class="nav-link"><i class="fas fa-home me-2"></i> الرئيسة</a>
             <a href="groups.html" class="nav-link"><i class="fas fa-users me-2"></i> المجموعات</a>
-            <a href="attendance.html" class="nav-link"><i class="fas fa-clipboard-check me-2"></i> الحضور والغياب</a>
             <a href="quiz-creator.html" class="nav-link active"><i class="fas fa-plus-circle me-2"></i> منشئ الاختبارات</a>
             <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar me-2"></i> التقارير والنتائج</a>
             <hr>
@@ -60,23 +59,19 @@
                         <label for="quiz-duration" class="form-label">مدة الاختبار (بالدقائق)</label>
                         <input type="number" id="quiz-duration" class="form-control" value="30">
                     </div>
+                    <div class="col-md-6">
+                        <label for="quiz-start" class="form-label">تاريخ البدء</label>
+                        <input type="datetime-local" id="quiz-start" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="quiz-end" class="form-label">تاريخ الانتهاء</label>
+                        <input type="datetime-local" id="quiz-end" class="form-control">
+                    </div>
                 </div>
             </div>
 
             <div id="questions-container">
-                <div class="card border p-3 mb-3 bg-light">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h6 class="fw-bold">سؤال 1</h6>
-                        <button class="btn btn-sm btn-outline-danger" title="حذف السؤال"><i class="fas fa-trash"></i></button>
-                    </div>
-                    <textarea class="form-control mb-3" placeholder="اكتب السؤال هنا..."></textarea>
-                    <div class="row g-2">
-                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 1"></div>
-                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 2"></div>
-                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 3"></div>
-                        <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 4"></div>
-                    </div>
-                </div>
+                <!-- Question cards will be added here -->
             </div>
 
             <button id="add-question-btn" class="btn btn-outline-primary w-100 mb-4"><i class="fas fa-plus me-2"></i>إضافة سؤال جديد</button>
@@ -89,6 +84,149 @@
     </main>
 
     <script src="../../assets/js/api.js"></script>
+    <script src="../../assets/js/modules/quiz-module.js"></script>
     <script src="../../assets/js/main.js"></script>
+    <script>
+        let isEditing = false;
+        let quizId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            quizId = urlParams.get('id');
+            if (quizId) {
+                isEditing = true;
+                document.querySelector('header h2').textContent = 'تعديل الاختبار';
+                document.getElementById('publish-quiz-btn').textContent = 'حفظ التعديلات';
+            }
+
+            // Set default dates
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            document.getElementById('quiz-start').value = now.toISOString().slice(0, 16);
+            document.getElementById('quiz-end').value = tomorrow.toISOString().slice(0, 16);
+
+            // Fetch groups
+            try {
+                const response = await api.getAllGroups();
+                const groupSelect = document.getElementById('target-group');
+                groupSelect.innerHTML = '';
+                response.data.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group._id;
+                    option.textContent = group.name;
+                    groupSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+            }
+
+            // If editing, load quiz data
+            if (isEditing) {
+                try {
+                    const response = await api.getQuiz(quizId);
+                    const quiz = response.data;
+                    
+                    document.getElementById('quiz-title').value = quiz.title;
+                    document.getElementById('target-group').value = quiz.group ? quiz.group._id : '';
+                    document.getElementById('quiz-duration').value = quiz.duration || 30;
+                    
+                    if (quiz.startDate) document.getElementById('quiz-start').value = new Date(quiz.startDate).toISOString().slice(0, 16);
+                    if (quiz.endDate) document.getElementById('quiz-end').value = new Date(quiz.endDate).toISOString().slice(0, 16);
+
+                    // Load questions
+                    const container = document.getElementById('questions-container');
+                    container.innerHTML = '';
+                    QuizModule.resetQuestionCount();
+                    quiz.questions.forEach(q => {
+                        QuizModule.addQuestion(container);
+                        const lastQ = container.lastElementChild;
+                        lastQ.querySelector('.q-text').value = q.question;
+                        const optInputs = lastQ.querySelectorAll('.opt-val');
+                        q.options.forEach((opt, idx) => {
+                            if (optInputs[idx]) optInputs[idx].value = opt;
+                            if (opt === q.correctAnswer) {
+                                lastQ.querySelectorAll('input[type="radio"]')[idx].checked = true;
+                            }
+                        });
+                    });
+                } catch (error) {
+                    showNotification('خطأ في تحميل بيانات الاختبار', 'error');
+                }
+            } else {
+                QuizModule.resetQuestionCount();
+                addQuestion();
+            }
+
+            // Setup event listeners
+            document.getElementById('add-question-btn').addEventListener('click', addQuestion);
+            document.getElementById('publish-quiz-btn').addEventListener('click', submitQuiz);
+        });
+
+        function addQuestion() {
+            QuizModule.addQuestion(document.getElementById('questions-container'));
+        }
+
+        async function submitQuiz() {
+            const btn = document.getElementById('publish-quiz-btn');
+            if (btn.disabled) return; // Prevent duplicate submissions
+            
+            const teacherId = localStorage.getItem('mualimi_user_id') || '65ebc4d1a1b2c3d4e5f60001';
+            const title = document.getElementById('quiz-title').value.trim();
+            const group = document.getElementById('target-group').value;
+            const startDate = document.getElementById('quiz-start').value;
+            const endDate = document.getElementById('quiz-end').value;
+
+            // Validation
+            if (!title) {
+                showNotification('يرجى إدخال عنوان الاختبار', 'error');
+                return;
+            }
+
+            if (!group) {
+                showNotification('يرجى اختيار المجموعة المستهدفة', 'error');
+                return;
+            }
+
+            // Collect questions using module
+            const { questions, totalPoints } = QuizModule.collectQuestions();
+
+            if (questions.length === 0) {
+                showNotification('يرجى إضافة سؤال واحد على الأقل مع كامل خياراته', 'error');
+                return;
+            }
+
+            const quizData = {
+                title,
+                group,
+                teacher: teacherId,
+                questions,
+                totalPoints,
+                startDate,
+                endDate
+            };
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+                
+                if (isEditing) {
+                    await api.updateQuiz(quizId, quizData);
+                    showNotification('تم تحديث الاختبار بنجاح!', 'success');
+                } else {
+                    await api.createQuiz(quizData);
+                    showNotification('تم نشر الاختبار بنجاح!', 'success');
+                }
+                
+                setTimeout(() => window.location.href = '../../teacher-dashboard.html', 1500);
+            } catch (error) {
+                showNotification('فشل في العملية: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = isEditing ? 'حفظ التعديلات' : 'نشر الاختبار الآن';
+            }
+        }
+    </script>
+
 </body>
 </html>

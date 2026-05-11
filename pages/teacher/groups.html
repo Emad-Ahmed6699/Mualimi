@@ -27,7 +27,6 @@
         <div class="nav flex-column">
             <a href="../../teacher-dashboard.html" class="nav-link"><i class="fas fa-home me-2"></i> الرئيسة</a>
             <a href="groups.html" class="nav-link active"><i class="fas fa-users me-2"></i> المجموعات</a>
-            <a href="attendance.html" class="nav-link"><i class="fas fa-clipboard-check me-2"></i> الحضور والغياب</a>
             <a href="quiz-creator.html" class="nav-link"><i class="fas fa-plus-circle me-2"></i> منشئ الاختبارات</a>
             <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar me-2"></i> التقارير والنتائج</a>
             <hr>
@@ -77,6 +76,15 @@
                             <input type="text" class="form-control" id="courseName" placeholder="مثلاً: لغة إنجليزية" required>
                         </div>
                         <div class="mb-3">
+                            <label for="groupGrade" class="form-label">الصف الدراسي</label>
+                            <select class="form-select" id="groupGrade" required>
+                                <option value="" selected disabled>اختر الصف...</option>
+                                <option value="1">الصف الأول</option>
+                                <option value="2">الصف الثاني</option>
+                                <option value="3">الصف الثالث</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label for="studentCount" class="form-label">عدد الطلاب المتوقع</label>
                             <input type="number" class="form-control" id="studentCount" placeholder="0">
                         </div>
@@ -99,35 +107,43 @@
                     <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="table-responsive">
+                    <div class="table-responsive mb-4">
                         <table class="table table-hover align-middle">
                             <thead>
                                 <tr>
-                                    <th>#</th>
                                     <th>اسم الطالب</th>
-                                    <th>رقم الهاتف</th>
-                                    <th>الحالة</th>
+                                    <th>ID</th>
+                                    <th>البريد الإلكتروني</th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>أحمد محمود</td>
-                                    <td>0123456789</td>
-                                    <td><span class="badge bg-success">نشط</span></td>
-                                    <td><button class="btn btn-sm btn-outline-danger border-0" title="حذف"><i class="fas fa-trash"></i></button></td>
-                                </tr>
-                                <tr>
-                                    <td>2</td>
-                                    <td>سارة علي</td>
-                                    <td>0987654321</td>
-                                    <td><span class="badge bg-success">نشط</span></td>
-                                    <td><button class="btn btn-sm btn-outline-danger border-0" title="حذف"><i class="fas fa-trash"></i></button></td>
-                                </tr>
+                            <tbody id="group-students-body">
+                                <!-- سيتم جلب الطلاب هنا -->
                             </tbody>
                         </table>
                     </div>
+                    
+                    <hr>
+                    <h6 class="fw-bold mb-3">إضافة طالب جديد للمجموعة</h6>
+                    <form id="add-student-to-group-form">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <input type="text" id="new-student-name" class="form-control form-control-sm" placeholder="اسم الطالب الرباعي" required>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" id="new-student-id" class="form-control form-control-sm" placeholder="كود الطالب (ID)" required>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="email" id="new-student-email" class="form-control form-control-sm" placeholder="البريد الإلكتروني" required>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" id="new-student-age" class="form-control form-control-sm" placeholder="السن" required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="button" id="save-student-btn" class="btn btn-primary btn-sm w-100">إضافة</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

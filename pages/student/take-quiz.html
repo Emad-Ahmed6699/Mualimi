@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حل الاختبار - معلمي</title>
+    <!-- Bootstrap 5 RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        .quiz-header {
+            background-color: #fff;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .question-card {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            padding: 25px;
+        }
+        .option-item {
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .option-item:hover {
+            border-color: var(--primary-color);
+            background-color: #f8fbff;
+        }
+        .option-item.selected {
+            border-color: var(--primary-color);
+            background-color: #eef7ff;
+            font-weight: bold;
+        }
+        .option-radio {
+            display: none;
+        }
+        .timer-badge {
+            background-color: #fef2f2;
+            color: #ef4444;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        #submit-quiz-btn {
+            display: none;
+        }
+        .success-icon {
+            font-size: 5rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <header class="quiz-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="fw-bold mb-0" id="quiz-title-display">جاري تحميل الاختبار...</h5>
+                <small class="text-muted" id="quiz-group-display">المجموعة: --</small>
+            </div>
+            <div class="timer-badge">
+                <i class="fas fa-clock me-1"></i>
+                <span id="quiz-timer">--:--</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mt-4 pb-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8" id="questions-container">
+                <!-- Questions will be injected here -->
+            </div>
+            
+            <div class="col-lg-8 text-center mt-4">
+                <button class="btn btn-primary btn-lg rounded-pill px-5 shadow" id="submit-quiz-btn">
+                    إنهاء وإرسال الإجابات
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="resultModal" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-body text-center p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success success-icon"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">تم إرسال إجابتك!</h3>
+                    <p class="text-muted mb-4">لقد انتهيت من حل الاختبار بنجاح. سيتم مراجعة الدرجات قريباً.</p>
+                    <button class="btn btn-primary w-100 rounded-pill" onclick="window.location.href='../../student-dashboard.html'">
+                        العودة للرئيسة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/api.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script>
+        // Specific logic for take-quiz page
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const quizId = urlParams.get('id');
+            const studentId = localStorage.getItem('mualimi_student_id');
+            
+            if (!quizId || !studentId) {
+                alert('عذراً، حدث خطأ في البيانات. سيتم توجيهك للرئيسة.');
+                window.location.href = '../../student-dashboard.html';
+                return;
+            }
+
+            try {
+                // Check if student already taken this quiz
+                const gradesRes = await api.getStudentGrades(studentId);
+                const hasTaken = (gradesRes.data || []).some(g => g.quiz && g.quiz._id === quizId);
+                
+                if (hasTaken) {
+                    alert('لقد قمت بحل هذا الاختبار مسبقاً!');
+                    window.location.href = '../../student-dashboard.html';
+                    return;
+                }
+
+                const response = await api.getQuiz(quizId);
+                const quiz = response.data;
+                
+                document.getElementById('quiz-title-display').textContent = quiz.title;
+                document.getElementById('quiz-group-display').textContent = `المجموعة: ${quiz.group ? quiz.group.name : 'عام'}`;
+                
+                renderQuizQuestions(quiz.questions);
+                startTimer(quiz.duration || 30);
+                
+                document.getElementById('submit-quiz-btn').style.display = 'inline-block';
+                document.getElementById('submit-quiz-btn').onclick = () => submitQuiz(quizId, studentId);
+                
+            } catch (error) {
+                console.error(error);
+                showNotification('خطأ في تحميل الاختبار', 'error');
+            }
+        });
+
+        function renderQuizQuestions(questions) {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            
+            questions.forEach((q, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card question-card fade-in';
+                card.dataset.index = idx;
+                
+                let optionsHtml = '';
+                q.options.forEach((opt, optIdx) => {
+                    optionsHtml += `
+                        <div class="option-item" onclick="selectOption(this, ${idx}, '${opt}')">
+                            <span class="me-3">${optIdx + 1}.</span>
+                            <span>${opt}</span>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <h6 class="fw-bold mb-4">سؤال ${idx + 1}: ${q.question}</h6>
+                    <div class="options-list">
+                        ${optionsHtml}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.selectOption = (el, qIdx, value) => {
+            const options = el.parentElement.querySelectorAll('.option-item');
+            options.forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            el.parentElement.dataset.selectedValue = value;
+        };
+
+        function startTimer(minutes) {
+            let seconds = minutes * 60;
+            const timerEl = document.getElementById('quiz-timer');
+            
+            const interval = setInterval(() => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    showNotification('انتهى الوقت! سيتم إرسال إجاباتك تلقائياً.', 'info');
+                    document.getElementById('submit-quiz-btn').click();
+                }
+                seconds--;
+            }, 1000);
+        }
+
+        async function submitQuiz(quizId, studentId) {
+            const answers = [];
+            document.querySelectorAll('.options-list').forEach((list, idx) => {
+                answers.push({
+                    questionIndex: idx,
+                    selectedAnswer: list.dataset.selectedValue || ''
+                });
+            });
+
+            try {
+                await api.submitQuiz(quizId, {
+                    studentId,
+                    answers
+                });
+                const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+                modal.show();
+            } catch (error) {
+                showNotification('فشل في إرسال الإجابات: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

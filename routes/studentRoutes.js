@@ -22,4 +22,18 @@ router.post('/', async (req, res) => {
     }
 });
 
+// @desc    Verify student for quiz
+router.post('/verify', async (req, res) => {
+    try {
+        const { name, studentId } = req.body;
+        const student = await Student.findOne({ name, studentId });
+        if (!student) {
+            return res.status(404).json({ success: false, error: 'الطالب غير موجود أو البيانات غير صحيحة' });
+        }
+        res.status(200).json({ success: true, data: student });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

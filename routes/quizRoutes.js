@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Quiz = require('../models/quiz');
 const QuizSubmission = require('../models/quizSubmission');
+const Grade = require('../models/grade');
 
 // @desc    Get all quizzes
 router.get('/', async (req, res) => {
@@ -90,6 +91,16 @@ router.post('/:id/submit', async (req, res) => {
             answers,
             score,
             totalPoints: quiz.totalPoints
+        });
+
+        // Also create a entry in Grades for student records
+        await Grade.create({
+            student: studentId,
+            quiz: req.params.id,
+            group: quiz.group,
+            score: score,
+            totalPoints: quiz.totalPoints,
+            percentage: (score / quiz.totalPoints) * 100
         });
 
         // Add submission to quiz

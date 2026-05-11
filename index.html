@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - معلمي</title>
+    <title>معلمي - مستقبل التعليم الذكي</title>
     <!-- Bootstrap 5 RTL -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
     <!-- Font Awesome -->
@@ -12,81 +12,150 @@
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
         body {
-            height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #fff;
             display: flex;
             align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            position: relative;
         }
-        .login-container {
-            width: 100%;
-            max-width: 500px;
-            padding: 20px;
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: #fff;
+            clip-path: polygon(0 100%, 100% 100%, 100% 0);
         }
-        .role-card {
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 20px;
         }
-        .role-card:hover {
-            border-color: var(--primary-color);
-            background-color: #f0f7ff;
+        .hero-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
         }
-        .role-icon {
+        .btn-premium {
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-premium-primary {
+            background: #fff;
+            color: #764ba2;
+            border: 2px solid #fff;
+        }
+        .btn-premium-primary:hover {
+            background: transparent;
+            color: #fff;
+            transform: scale(1.05);
+        }
+        .btn-premium-outline {
+            background: transparent;
+            color: #fff;
+            border: 2px solid #fff;
+            margin-right: 15px;
+        }
+        .btn-premium-outline:hover {
+            background: #fff;
+            color: #764ba2;
+            transform: scale(1.05);
+        }
+        .feature-card {
+            border: none;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            text-align: center;
+            height: 100%;
+        }
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+        }
+        .btn-premium:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .hero-image {
+            max-height: 500px;
+        }
+        .feature-icon {
             font-size: 3rem;
-            color: var(--primary-color);
-            margin-bottom: 15px;
+            color: #667eea;
+            margin-bottom: 20px;
         }
     </style>
 </head>
-<body class="fade-in">
+<body>
 
-    <div class="login-container">
-        <div class="text-center mb-5">
-            <h1 class="fw-bold text-primary">معلمي</h1>
-            <p class="text-muted">نظام الإدارة الأكاديمية والتقييم المتكامل</p>
-        </div>
-
-        <div class="card m-card p-4">
-            <h4 class="text-center mb-4">اختر نوع الحساب</h4>
-            
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="card role-card p-4 text-center h-100" onclick="selectRole('teacher')" role="button" tabindex="0">
-                        <i class="fas fa-chalkboard-teacher role-icon"></i>
-                        <h6 class="fw-bold">دخول المعلم</h6>
+    <section class="hero-section">
+        <div class="container text-center text-md-start">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <h1 class="hero-title fade-in">معلمي</h1>
+                    <p class="hero-subtitle fade-in">المنصة المتكاملة لإدارة الاختبارات والتقييم الذكي. صُممت لتسهيل حياة المعلم ورفع مستوى الطالب.</p>
+                    <div class="d-flex justify-content-center justify-content-md-start fade-in">
+                        <a href="login.html" class="btn btn-premium btn-premium-primary shadow">دخول النظام</a>
+                        <a href="signup.html" class="btn btn-premium btn-premium-outline">إنشاء حساب</a>
                     </div>
                 </div>
-                <div class="col-6">
-                    <div class="card role-card p-4 text-center h-100" onclick="selectRole('student')" role="button" tabindex="0">
-                        <i class="fas fa-user-graduate role-icon"></i>
-                        <h6 class="fw-bold">دخول الطالب</h6>
+                <div class="col-lg-6 text-center fade-in">
+                    <img src="https://img.freepik.com/free-vector/online-certification-illustration_23-2148575636.jpg" class="img-fluid rounded-4 shadow-lg hero-image" alt="Education">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-white">
+        <div class="container py-5">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">لماذا تختار منصة معلمي؟</h2>
+                <p class="text-muted">نحن نوفر لك الأدوات التي تحتاجها للنجاح في العصر الرقمي</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-bolt feature-icon"></i>
+                        <h4 class="fw-bold">سهولة الاستخدام</h4>
+                        <p class="text-muted">واجهة بديهية تسمح لك بإنشاء الاختبارات في دقائق معدودة وبأقل مجهود.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-chart-line feature-icon"></i>
+                        <h4 class="fw-bold">تقارير ذكية</h4>
+                        <p class="text-muted">احصل على تحليل كامل لنتائج الطلاب وتقدمهم الدراسي بشكل فوري ودقيق.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <h4 class="fw-bold">أمان تام</h4>
+                        <p class="text-muted">نحن نهتم بخصوصية بياناتك وبيانات طلابك ونضمن لك بيئة تقييم آمنة وموثوقة.</p>
                     </div>
                 </div>
             </div>
-
-            <div class="mt-4 text-center">
-                <small class="text-muted">نظام ذكي لبيئة تعليمية أفضل</small>
-            </div>
         </div>
-    </div>
+    </section>
 
-    <script src="assets/js/api.js"></script>
+    <footer class="bg-light py-4 text-center">
+        <p class="mb-0 text-muted">&copy; 2026 منصة معلمي - جميع الحقوق محفوظة</p>
+    </footer>
+
     <script src="assets/js/main.js"></script>
-    <script>
-        // Ensure selectRole is available immediately
-        if (!window.selectRole) {
-            window.selectRole = (role) => {
-                console.log('Selecting role:', role);
-                localStorage.setItem('mualimi_role', role);
-                if (role === 'teacher') {
-                    window.location.href = 'teacher-dashboard.html';
-                } else {
-                    window.location.href = 'student-dashboard.html';
-                }
-            };
-        }
-    </script>
-
 </body>
 </html>

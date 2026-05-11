@@ -29,6 +29,10 @@ class MualimAPI {
         }
     }
 
+    async checkHealth() {
+        return this.request('/health');
+    }
+
     // ============= STUDENTS =============
     async getAllStudents() {
         return this.request('/students');
@@ -55,6 +59,13 @@ class MualimAPI {
     async deleteStudent(id) {
         return this.request(`/students/${id}`, {
             method: 'DELETE',
+        });
+    }
+    
+    async verifyStudent(data) {
+        return this.request('/students/verify', {
+            method: 'POST',
+            body: JSON.stringify(data),
         });
     }
 
@@ -163,38 +174,6 @@ class MualimAPI {
         });
     }
 
-    // ============= ATTENDANCE =============
-    async getAllAttendance() {
-        return this.request('/attendance');
-    }
-
-    async getStudentAttendance(studentId) {
-        return this.request(`/attendance/student/${studentId}`);
-    }
-
-    async getGroupAttendance(groupId) {
-        return this.request(`/attendance/group/${groupId}`);
-    }
-
-    async markAttendance(data) {
-        return this.request('/attendance', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
-    }
-
-    async updateAttendance(id, data) {
-        return this.request(`/attendance/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        });
-    }
-
-    async deleteAttendance(id) {
-        return this.request(`/attendance/${id}`, {
-            method: 'DELETE',
-        });
-    }
 
     // ============= GRADES =============
     async getAllGrades() {
@@ -227,11 +206,6 @@ class MualimAPI {
         return this.request(`/grades/${id}`, {
             method: 'DELETE',
         });
-    }
-
-    // ============= HEALTH CHECK =============
-    async checkHealth() {
-        return this.request('/health');
     }
 }
 

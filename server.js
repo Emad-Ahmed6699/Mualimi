@@ -25,8 +25,8 @@ app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/teachers', require('./routes/teacherRoutes'));
 app.use('/api/groups', require('./routes/groupRoutes'));
 app.use('/api/quizzes', require('./routes/quizRoutes'));
-app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/grades', require('./routes/gradeRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
 
 // Serve HTML pages
 app.get('/', (req, res) => {

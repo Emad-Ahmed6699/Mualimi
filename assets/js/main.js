@@ -1,647 +1,488 @@
 // Mualimi - Main JavaScript Logic
 const API_URL = 'http://localhost:5000/api';
+// Helper to get logged in user info
+const getUserId = () => localStorage.getItem('mualimi_user_id') || localStorage.getItem('mualimi_student_id');
+const getUserRole = () => localStorage.getItem('mualimi_role');
 
-// Global function for role selection - MUST be defined BEFORE DOMContentLoaded
-window.selectRole = (role) => {
-    console.log('Selecting role:', role);
-    localStorage.setItem('mualimi_role', role);
-    if (role === 'teacher') {
-        window.location.href = 'teacher-dashboard.html';
-    } else {
-        window.location.href = 'student-dashboard.html';
-    }
+// Logout Function
+window.logout = () => {
+    localStorage.removeItem('mualimi_role');
+    localStorage.removeItem('mualimi_user_id');
+    localStorage.removeItem('mualimi_user_name');
+    localStorage.removeItem('mualimi_student_id');
+    localStorage.removeItem('mualimi_student_name');
+    window.location.href = '/login.html';
 };
 
-// Notification utility
-function showNotification(message, type = 'success') {
-    const notificationHtml = `
-        <div class="alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('afterbegin', notificationHtml);
-    setTimeout(() => {
-        const alerts = document.querySelectorAll('.alert');
-        if (alerts.length > 0) {
-            alerts[0].remove();
-        }
-    }, 3000);
-}
+// Generic Notification System
+window.showNotification = (message, type = 'success') => {
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+        document.body.appendChild(container);
+    }
 
-// Load dashboard data based on role
-async function loadDashboardData() {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'error' ? 'danger' : (type === 'info' ? 'info' : 'success')} alert-dismissible fade show shadow`;
+    toast.role = 'alert';
+    toast.style.minWidth = '300px';
+    toast.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : (type === 'info' ? 'fa-info-circle' : 'fa-check-circle')} me-2"></i>
+            <div>${message}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    container.appendChild(toast);
+    setTimeout(() => {
+        const bsAlert = bootstrap.Alert.getOrCreateInstance(toast);
+        bsAlert.close();
+    }, 3000);
+};
+
+// Load dashboard statistics
+async function loadDashboardStats() {
     const role = localStorage.getItem('mualimi_role') || 'student';
     
     try {
-        if (role === 'teacher' && window.location.pathname.includes('teacher')) {
-            // Load teacher dashboard data
-            const studentCount = document.querySelector('[data-student-count]');
-            if (studentCount) {
-                const response = await api.getAllStudents();
-                studentCount.innerText = response.count || 0;
-            }
+        if (role === 'teacher' && (window.location.pathname.includes('teacher-dashboard') || window.location.pathname.endsWith('/'))) {
+            // Fetch All necessary data
+            const [studentsRes, quizzesRes, gradesRes] = await Promise.all([
+                api.getAllStudents(),
+                api.getAllQuizzes(),
+                api.getAllGrades()
+            ]);
 
-            const quizCount = document.querySelector('[data-quiz-count]');
-            if (quizCount) {
-                const response = await api.getAllQuizzes();
-                quizCount.innerText = response.count || 0;
-            }
-        } else if (role === 'student' && window.location.pathname.includes('student')) {
-            // Load student dashboard data
-            const quizCount = document.querySelector('#active-quizzes-count');
-            if (quizCount) {
-                const response = await api.getActiveQuizzes();
-                quizCount.innerText = `لديك ${response.count || 0} اختبار جديد`;
-            }
-        }
-    } catch (error) {
-        console.error('Error loading dashboard data:', error);
-    }
-}
+            // Update Stats Cards
+            const totalStudentsEl = document.getElementById('total-students-count');
+            const activeQuizzesEl = document.getElementById('active-quizzes-count');
+            const avgGradeEl = document.getElementById('avg-grade-display');
+            const pendingAlertsEl = document.getElementById('pending-alerts-count');
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Mualimi System Initialized');
-    
-    // Test backend connection
-    try {
-        const health = await api.checkHealth();
-        console.log('✅ Connected to Backend:', health.message);
-    } catch (error) {
-        console.error('❌ Backend Connection Failed:', error);
-        showNotification('خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم.', 'error');
-    }
-
-    // --- Sidebar & Navigation ---
-
-    // Handle Mobile Sidebar Toggle
-    const toggleBtn = document.querySelector('.mobile-toggle');
-    const sidebar = document.querySelector('.sidebar');
-
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            const icon = toggleBtn.querySelector('i');
-            if (sidebar.classList.contains('active')) {
-                icon.classList.replace('fa-bars', 'fa-times');
-            } else {
-                icon.classList.replace('fa-times', 'fa-bars');
-            }
-        });
-    }
-
-    // Logout Confirmation
-    const logoutLinks = document.querySelectorAll('a[href*="index.html"]');
-    logoutLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            if (!confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                e.preventDefault();
-            }
-        });
-    });
-
-    // Handle active state for Student Bottom Nav
-    const bottomNavItems = document.querySelectorAll('.nav-item');
-    bottomNavItems.forEach(item => {
-        item.addEventListener('click', () => {
-            bottomNavItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-        });
-    });
-
-    // Sidebar link active state and auto-close on mobile
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            navLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
+            if (totalStudentsEl) totalStudentsEl.innerText = studentsRes.count || 0;
+            if (activeQuizzesEl) activeQuizzesEl.innerText = (quizzesRes.data || []).filter(q => new Date(q.endDate) > new Date()).length;
             
-            if (window.innerWidth <= 768 && sidebar) {
-                sidebar.classList.remove('active');
-                if (toggleBtn) {
-                    const icon = toggleBtn.querySelector('i');
-                    icon.classList.replace('fa-times', 'fa-bars');
+            // Calculate Average Grade
+            const grades = gradesRes.data || [];
+            if (avgGradeEl) {
+                if (grades.length > 0) {
+                    const avg = grades.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / grades.length;
+                    avgGradeEl.innerText = Math.round(avg) + '%';
+                } else {
+                    avgGradeEl.innerText = '0%';
                 }
             }
-        });
-    });
 
-    // --- Functional Logic & Notifications ---
-
-    // --- Profile & Dashboard Polish ---
-
-    // Dynamic Profile Name (from localStorage)
-    const profileNames = document.querySelectorAll('.sidebar h3, .sidebar p, .main-content h2, .main-content p.fw-bold, .student-header h4');
-    const savedName = localStorage.getItem('mualimi_user_name');
-    if (savedName) {
-        profileNames.forEach(el => {
-            if (el.innerText.includes('أحمد') || el.innerText.includes('ياسين') || el.innerText.includes('الفولي') || el.innerText.includes('عمده')) {
-                el.innerText = el.innerText.replace(/أحمد|ياسين|الفولي|عمده/g, savedName);
-            }
-        });
-    }
-
-    // Allow clicking on profile name to change it (Teacher & Student)
-    const editableNames = document.querySelectorAll('.main-content p.fw-bold, .student-header h4');
-    editableNames.forEach(nameEl => {
-        nameEl.style.cursor = 'pointer';
-        nameEl.title = 'انقر لتغيير الاسم';
-        nameEl.addEventListener('click', () => {
-            const newName = prompt('أدخل الاسم الجديد:', nameEl.innerText.replace('مرحباً، ', ''));
-            if (newName) {
-                localStorage.setItem('mualimi_user_name', newName);
-                location.reload();
-            }
-        });
-    });
-
-    // Load and display dashboard data
-    await loadDashboardData();
-});
-
-// Notification utility
-function showNotification(message, type = 'success') {
-    const notificationHtml = `
-        <div class="alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('afterbegin', notificationHtml);
-    setTimeout(() => {
-        const alerts = document.querySelectorAll('.alert');
-        if (alerts.length > 0) {
-            alerts[0].remove();
-        }
-    }, 3000);
-}
-
-// Load dashboard data based on role
-async function loadDashboardData() {
-    const role = localStorage.getItem('mualimi_role') || 'student';
-    
-    try {
-        if (role === 'teacher' && window.location.pathname.includes('teacher')) {
-            // Load teacher dashboard data
-            const studentCount = document.querySelector('[data-student-count]');
-            if (studentCount) {
-                const response = await api.getAllStudents();
-                studentCount.innerText = response.count || 0;
+            // Pending Alerts (Students with score < 50%)
+            if (pendingAlertsEl) {
+                const failingCount = grades.filter(g => (g.percentage || 0) < 50).length;
+                pendingAlertsEl.innerText = failingCount;
             }
 
-            const quizCount = document.querySelector('[data-quiz-count]');
-            if (quizCount) {
-                const response = await api.getAllQuizzes();
-                quizCount.innerText = response.count || 0;
-            }
-        } else if (role === 'student' && window.location.pathname.includes('student')) {
-            // Load student dashboard data
-            const quizCount = document.querySelector('#active-quizzes-count');
-            if (quizCount) {
-                const response = await api.getActiveQuizzes();
-                quizCount.innerText = `لديك ${response.count || 0} اختبار جديد`;
-            }
+            // Load last quizzes into table
+            renderDashboardQuizzesTable(quizzesRes.data || []);
+        } else if (role === 'student' && window.location.pathname.includes('student-dashboard')) {
+            // Student Stats
+            const quizCountEl = document.getElementById('active-quizzes-count');
+            const response = await api.getActiveQuizzes();
+            if (quizCountEl) quizCountEl.innerText = `لديك ${response.count || 0} اختبار جديد`;
         }
     } catch (error) {
-        console.error('Error loading dashboard data:', error);
+        console.error('Error loading stats:', error);
     }
 }
 
-    // --- Reports & Charts ---
-    const gradesCtx = document.getElementById('gradesChart');
-    if (gradesCtx) {
-        new Chart(gradesCtx, {
-            type: 'bar',
-            data: {
-                labels: ['ممتاز', 'جيد جداً', 'جيد', 'مقبول', 'ضعيف'],
-                datasets: [{
-                    label: 'عدد الطلاب',
-                    data: [45, 30, 20, 10, 5],
-                    backgroundColor: [
-                        'rgba(46, 204, 113, 0.7)',
-                        'rgba(52, 152, 219, 0.7)',
-                        'rgba(241, 196, 15, 0.7)',
-                        'rgba(230, 126, 34, 0.7)',
-                        'rgba(231, 76, 60, 0.7)'
-                    ],
-                    borderColor: [
-                        '#2ecc71', '#3498db', '#f1c40f', '#e67e22', '#e74c3c'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
+function renderDashboardQuizzesTable(quizzes) {
+    const tableBody = document.getElementById('dashboard-quizzes-body');
+    if (!tableBody) return;
+
+    tableBody.innerHTML = '';
+    if (quizzes.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد اختبارات منشأة حالياً</td></tr>';
+        return;
     }
 
-    // Generic Notification System
-    window.showNotification = (message, type = 'success') => {
-        const toast = document.createElement('div');
-        toast.className = `toast-notification ${type}`;
-        toast.innerHTML = `
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'} me-2"></i>
-            <span>${message}</span>
+    // Sort by date descending
+    const sortedQuizzes = [...quizzes].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    sortedQuizzes.slice(0, 5).forEach(quiz => {
+        const isActive = new Date(quiz.endDate) > new Date();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${quiz.title}</td>
+            <td>${quiz.group ? quiz.group.name : 'عام'}</td>
+            <td>${new Date(quiz.createdAt).toLocaleDateString('ar-EG')}</td>
+            <td><span class="badge ${isActive ? 'bg-success' : 'bg-secondary'}">${isActive ? 'نشط' : 'منتهي'}</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline-secondary edit-quiz-btn" data-id="${quiz._id}" title="تعديل"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-outline-danger delete-quiz-btn" data-id="${quiz._id}" title="حذف"><i class="fas fa-trash"></i></button>
+            </td>
         `;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => toast.classList.add('show'), 100);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 500);
-        }, 3000);
-    };
+        tableBody.appendChild(tr);
+    });
 
-    // Save Attendance
-    const saveAttBtn = document.getElementById('save-attendance-btn');
-    if (saveAttBtn) {
-        saveAttBtn.addEventListener('click', () => {
-            const rows = document.querySelectorAll('tbody tr');
-            let present = 0;
-            let absent = 0;
-            
-            rows.forEach(row => {
-                const radios = row.querySelectorAll('input[type="radio"]');
-                if (radios[0].checked) present++;
-                else if (radios[1].checked) absent++;
-            });
+    // Edit Event
+    tableBody.querySelectorAll('.edit-quiz-btn').forEach(btn => {
+        btn.onclick = () => {
+            window.location.href = `pages/teacher/quiz-creator.html?id=${btn.dataset.id}`;
+        };
+    });
 
-            showNotification(`تم حفظ التحضير: ${present} حاضر، ${absent} غائب`);
-        });
-    }
-
-    // Quiz Creator Actions
-    const addQuestionBtn = document.getElementById('add-question-btn');
-    const questionsContainer = document.getElementById('questions-container');
-    if (addQuestionBtn && questionsContainer) {
-        addQuestionBtn.addEventListener('click', () => {
-            const questionCount = questionsContainer.children.length + 1;
-            const newQuestion = document.createElement('div');
-            newQuestion.className = 'card border p-3 mb-3 bg-light fade-in';
-            newQuestion.innerHTML = `
-                <div class="d-flex justify-content-between mb-3">
-                    <h6 class="fw-bold">سؤال ${questionCount}</h6>
-                    <button class="btn btn-sm btn-outline-danger" title="حذف السؤال"><i class="fas fa-trash"></i></button>
-                </div>
-                <textarea class="form-control mb-3" placeholder="اكتب السؤال هنا..."></textarea>
-                <div class="row g-2">
-                    <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 1"></div>
-                    <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 2"></div>
-                    <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 3"></div>
-                    <div class="col-6"><input type="text" class="form-control form-control-sm" placeholder="الخيار 4"></div>
-                </div>
-            `;
-            questionsContainer.appendChild(newQuestion);
-            showNotification('تم إضافة سؤال جديد');
-            
-            // Re-bind delete event for new button
-            newQuestion.querySelector('.btn-outline-danger').addEventListener('click', function() {
-                if (confirm('هل أنت متأكد من حذف هذا السؤال؟')) {
-                    newQuestion.remove();
+    tableBody.querySelectorAll('.delete-quiz-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (confirm('هل أنت متأكد من حذف هذا الاختبار؟')) {
+                try {
+                    await api.deleteQuiz(btn.dataset.id);
+                    showNotification('تم حذف الاختبار');
+                    btn.closest('tr').remove();
+                } catch (error) {
+                    showNotification('خطأ في الحذف', 'error');
                 }
-            });
-        });
-    }
-
-    const saveDraftBtn = document.getElementById('save-draft-btn');
-    if (saveDraftBtn) {
-        saveDraftBtn.addEventListener('click', () => {
-            showNotification('تم حفظ الاختبار كمسودة', 'info');
-        });
-    }
-
-    // --- Quiz Logic (Publish & Render) ---
-    const publishQuizBtn = document.getElementById('publish-quiz-btn');
-    if (publishQuizBtn) {
-        publishQuizBtn.addEventListener('click', () => {
-            const title = document.getElementById('quiz-title').value;
-            const group = document.getElementById('target-group').value;
-            if (title) {
-                const quizzes = JSON.parse(localStorage.getItem('mualimi_quizzes')) || [];
-                quizzes.push({
-                    id: Date.now(),
-                    title: title,
-                    group: group,
-                    questions: 5,
-                    duration: 15
-                });
-                localStorage.setItem('mualimi_quizzes', JSON.stringify(quizzes));
-                showNotification('تم نشر الاختبار بنجاح!');
-                setTimeout(() => window.location.href = 'reports.html', 1500);
-            } else {
-                showNotification('يرجى إدخال عنوان للاختبار', 'error');
             }
         });
-    }
+    });
+}
 
-    const studentQuizzesContainer = document.getElementById('student-quizzes-container');
-    if (studentQuizzesContainer) {
-        const quizzes = JSON.parse(localStorage.getItem('mualimi_quizzes')) || [
-            { id: 1, title: 'اختبار اللغة العربية - الأسبوع 4', duration: 30, questions: 10 },
-            { id: 2, title: 'اختبار القواعد والنحو', duration: 15, questions: 5 }
-        ];
-
-        studentQuizzesContainer.innerHTML = '';
-        quizzes.reverse().forEach(quiz => {
-            const card = document.createElement('div');
-            card.className = 'quiz-card fade-in';
-            card.innerHTML = `
-                <div>
-                    <h6 class="fw-bold mb-1">${quiz.title}</h6>
-                    <p class="small text-muted mb-0"><i class="far fa-clock me-1"></i> ${quiz.duration} دقيقة | ${quiz.questions} أسئلة</p>
-                </div>
-                <button class="btn btn-primary btn-sm rounded-pill px-3 start-quiz-btn" data-title="${quiz.title}">ابدأ</button>
-            `;
-            studentQuizzesContainer.appendChild(card);
-        });
-
-        document.querySelectorAll('.start-quiz-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const title = this.dataset.title;
-                if (confirm(`هل أنت مستعد لبدء ${title}؟`)) {
-                    showNotification('جاري تحميل الاختبار...');
-                }
-            });
-        });
-    }
-
-    const activeQuizzesCount = document.getElementById('active-quizzes-count');
-    if (activeQuizzesCount) {
-        const quizzes = JSON.parse(localStorage.getItem('mualimi_quizzes')) || [
-            { id: 1 }, { id: 2 }
-        ];
-        activeQuizzesCount.innerText = `لديك ${quizzes.length} اختبار جديد`;
-    }
-
-    // --- Group Management (LocalStorage & Search) ---
+// --- Group Management Logic ---
+async function initGroupManagement() {
     const groupsContainer = document.getElementById('groups-container');
     const searchInput = document.getElementById('search-groups');
-    const dashboardTableBody = document.getElementById('dashboard-quizzes-body');
-    
-    // Initial Data
-    let groups = JSON.parse(localStorage.getItem('mualimi_groups')) || [
-        { id: 1, name: 'المجموعة أ', course: 'اللغة العربية - المستوى الأول', students: 25, date: '2024/05/01' },
-        { id: 2, name: 'المجموعة ب', course: 'نحو وصرف - المستوى الثاني', students: 18, date: '2024/05/03' }
-    ];
+    const saveGroupBtn = document.getElementById('save-group-btn');
+    const groupForm = document.getElementById('add-group-form');
 
-    const renderDashboardTable = () => {
-        if (!dashboardTableBody) return;
-        dashboardTableBody.innerHTML = '';
-        
-        // Show last 5 groups as quizzes for demo
-        groups.slice(-5).reverse().forEach(group => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>اختبار ${group.name}</td>
-                <td>${group.name}</td>
-                <td>${group.date || '2024/05/10'}</td>
-                <td><span class="badge bg-success">نشط</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline-secondary table-edit-btn" title="تعديل"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-outline-danger table-delete-btn" data-id="${group.id}" title="حذف"><i class="fas fa-trash"></i></button>
-                </td>
-            `;
-            dashboardTableBody.appendChild(tr);
-        });
+    if (!groupsContainer) return;
 
-        // Re-attach info listeners for dashboard buttons
-        dashboardTableBody.querySelectorAll('.table-edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                showNotification('هذه الميزة متاحة في صفحة "المجموعات" حالياً', 'info');
-            });
-        });
+    let allGroups = [];
 
-        // Dashboard Delete Logic
-        dashboardTableBody.querySelectorAll('.table-delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = parseInt(btn.dataset.id);
-                if (confirm('هل أنت متأكد من حذف هذه المجموعة؟')) {
-                    groups = groups.filter(g => g.id !== id);
-                    localStorage.setItem('mualimi_groups', JSON.stringify(groups));
-                    renderDashboardTable();
-                    showNotification('تم حذف المجموعة والبيانات المرتبطة بها');
-                }
-            });
-        });
-    };
-
-    const renderGroupSelects = () => {
-        const selects = document.querySelectorAll('#group-select, #target-group');
-        selects.forEach(select => {
-            const currentValue = select.value;
-            select.innerHTML = '';
-            groups.forEach(group => {
-                const option = document.createElement('option');
-                option.value = group.name;
-                option.textContent = group.name;
-                select.appendChild(option);
-            });
-            // Try to restore previous value if it still exists
-            if (currentValue) select.value = currentValue;
-        });
-    };
-
-    let currentEditId = null;
-
-    const renderGroups = (filter = '') => {
-        // Sync everything
-        renderGroupSelects();
-        
-        if (!groupsContainer) {
-            renderDashboardTable();
-            return;
+    const fetchAndRender = async () => {
+        try {
+            const response = await api.getAllGroups();
+            allGroups = response.data || [];
+            renderGroups(allGroups);
+        } catch (error) {
+            console.error('Error fetching groups:', error);
         }
-        
-        groupsContainer.innerHTML = '';
-        const filtered = groups.filter(g => 
-            g.name.toLowerCase().includes(filter.toLowerCase()) || 
-            g.course.toLowerCase().includes(filter.toLowerCase())
-        );
-
-        if (filtered.length === 0) {
-            groupsContainer.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <i class="fas fa-search fa-3x text-light-gray mb-3"></i>
-                    <p class="text-muted">لم يتم العثور على نتائج لمطابقة بحثك</p>
-                </div>
-            `;
-            return;
-        }
-
-        filtered.forEach(group => {
-            const card = document.createElement('div');
-            card.className = 'col-md-4 fade-in';
-            card.innerHTML = `
-                <div class="card border p-3 h-100">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="badge bg-light text-primary p-2">${group.name}</span>
-                        <div class="dropdown">
-                            <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item edit-group" href="#" data-id="${group.id}">تعديل</a></li>
-                                <li><a class="dropdown-item text-danger delete-group" href="#" data-id="${group.id}">حذف</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <h6 class="fw-bold">${group.course}</h6>
-                    <p class="small text-muted mb-3"><i class="fas fa-user-friends me-1"></i> ${group.students} طالب</p>
-                    <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#viewStudentsModal">عرض الطلاب</button>
-                </div>
-            `;
-            groupsContainer.appendChild(card);
-        });
-
-        // Re-attach delete listeners
-        document.querySelectorAll('.delete-group').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const id = parseInt(btn.dataset.id);
-                if (confirm('هل أنت متأكد من حذف هذه المجموعة؟')) {
-                    groups = groups.filter(g => g.id !== id);
-                    localStorage.setItem('mualimi_groups', JSON.stringify(groups));
-                    renderGroups(searchInput ? searchInput.value : '');
-                    showNotification('تم حذف المجموعة');
-                }
-            });
-        });
-
-        // Re-attach edit listeners
-        document.querySelectorAll('.edit-group').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const id = parseInt(btn.dataset.id);
-                const group = groups.find(g => g.id === id);
-                if (group) {
-                    currentEditId = id;
-                    document.getElementById('groupName').value = group.name;
-                    document.getElementById('courseName').value = group.course;
-                    document.getElementById('studentCount').value = group.students;
-                    document.getElementById('addGroupModalLabel').innerText = 'تعديل مجموعة';
-                    
-                    const modal = new bootstrap.Modal(document.getElementById('addGroupModal'));
-                    modal.show();
-                }
-            });
-        });
     };
 
-    // Initial Render
-    renderGroups();
+    fetchAndRender();
 
-    // Search Logic
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            renderGroups(e.target.value);
+            const term = e.target.value.toLowerCase();
+            const filtered = allGroups.filter(g => 
+                g.name.toLowerCase().includes(term) || 
+                (g.course && g.course.toLowerCase().includes(term))
+            );
+            renderGroups(filtered);
         });
     }
 
-    // Reset modal when clicking "Add Group"
-    const addGroupMainBtn = document.querySelector('[data-bs-target="#addGroupModal"]');
-    if (addGroupMainBtn) {
-        addGroupMainBtn.addEventListener('click', () => {
-            currentEditId = null;
-            document.getElementById('addGroupModalLabel').innerText = 'إضافة مجموعة جديدة';
-            document.getElementById('add-group-form').reset();
-        });
-    }
-
-    const saveGroupBtn = document.getElementById('save-group-btn');
-    if (saveGroupBtn) {
-        saveGroupBtn.addEventListener('click', () => {
+    if (saveGroupBtn && groupForm) {
+        saveGroupBtn.addEventListener('click', async () => {
             const name = document.getElementById('groupName').value;
             const course = document.getElementById('courseName').value;
-            const count = document.getElementById('studentCount').value || 0;
+            const grade = document.getElementById('groupGrade').value;
+            const studentsCount = document.getElementById('studentCount').value;
 
-            if (name && course) {
-                if (currentEditId) {
-                    // Update existing
-                    const index = groups.findIndex(g => g.id === currentEditId);
-                    if (index !== -1) {
-                        groups[index] = { ...groups[index], name, course, students: count };
-                        showNotification('تم تحديث بيانات المجموعة');
-                    }
-                } else {
-                    // Add new
-                    const newGroup = {
-                        id: Date.now(),
-                        name: name,
-                        course: course,
-                        students: count,
-                        date: new Date().toLocaleDateString('ar-EG')
-                    };
-                    groups.push(newGroup);
-                    showNotification(`تم إنشاء مجموعة "${name}" بنجاح`);
-                }
+            if (!name || !grade) {
+                showNotification('يرجى ملء الحقول المطلوبة', 'error');
+                return;
+            }
 
-                localStorage.setItem('mualimi_groups', JSON.stringify(groups));
-                renderGroups();
-                
-                const modalElement = document.getElementById('addGroupModal');
-                const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-                modal.hide();
-                document.getElementById('add-group-form').reset();
-            } else {
-                showNotification('يرجى ملء جميع الحقول المطلوبة', 'error');
+            try {
+                const groupData = { 
+                    name, 
+                    description: course, 
+                    grade, 
+                    teacher: getUserId() 
+                };
+                await api.createGroup(groupData);
+                showNotification(`تم إنشاء مجموعة "${name}" بنجاح`);
+                groupForm.reset();
+                bootstrap.Modal.getInstance(document.getElementById('addGroupModal')).hide();
+                fetchAndRender();
+            } catch (error) {
+                showNotification('خطأ: ' + error.message, 'error');
             }
         });
     }
+}
 
-    // --- Dashboard Actions ---
-    const messageParentsBtn = document.getElementById('message-parents-btn');
-    if (messageParentsBtn) {
-        messageParentsBtn.addEventListener('click', () => {
-            const msg = prompt('اكتب رسالتك لأولياء الأمور:');
-            if (msg) {
-                showNotification('جاري إرسال الرسائل لجميع أولياء الأمور...');
-                setTimeout(() => showNotification('تم الإرسال بنجاح'), 2000);
-            }
-        });
-    }
+function renderGroups(groups) {
+    const container = document.getElementById('groups-container');
+    if (!container) return;
 
-    // --- Reports Actions ---
-    const downloadReportBtn = document.getElementById('download-report-btn');
-    if (downloadReportBtn) {
-        downloadReportBtn.addEventListener('click', () => {
-            showNotification('جاري تجهيز التقرير الشامل...');
-            setTimeout(() => showNotification('بدأ التحميل الآن'), 1500);
-        });
-    }
-
-    // Dashboard/Table Edit Buttons
-    const tableEditBtns = document.querySelectorAll('.btn-outline-secondary[title="تعديل"]');
-    tableEditBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            showNotification('هذه الميزة متاحة في صفحة "المجموعات" حالياً', 'info');
-        });
+    container.innerHTML = '';
+    groups.forEach(group => {
+        const col = document.createElement('div');
+        col.className = 'col-md-4 fade-in';
+        col.innerHTML = `
+            <div class="card border p-3 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge bg-light text-primary p-2">الصف ${group.grade}</span>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item text-danger delete-group" href="#" data-id="${group._id}">حذف</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <h5 class="fw-bold">${group.name}</h5>
+                <p class="text-muted small">${group.description || ''}</p>
+                <div class="d-flex justify-content-between align-items-center mt-auto">
+                    <span class="small text-muted"><i class="fas fa-users me-1"></i> ${group.students ? group.students.length : 0} طالب</span>
+                    <button class="btn btn-sm btn-outline-primary view-students-btn" data-id="${group._id}" data-name="${group.name}" data-grade="${group.grade}">عرض الطلاب</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
     });
 
-    // Delete Buttons in tables and cards
-    const deleteButtons = document.querySelectorAll('.btn-outline-danger, .dropdown-item.text-danger');
-    deleteButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const row = this.closest('tr');
-            const card = this.closest('.col-md-4'); // For group cards
+    container.querySelectorAll('.view-students-btn').forEach(btn => {
+        btn.onclick = async () => {
+            const groupId = btn.dataset.id;
+            const groupName = btn.dataset.name;
+            const groupGrade = btn.dataset.grade;
             
-            if (confirm('هل أنت متأكد من هذا الإجراء؟')) {
-                const target = row || card;
-                if (target) {
-                    target.style.transition = 'all 0.3s';
-                    target.style.opacity = '0';
-                    target.style.transform = 'scale(0.9)';
-                    setTimeout(() => {
-                        target.remove();
-                        showNotification('تمت العملية بنجاح');
-                    }, 300);
+            document.getElementById('viewStudentsModalLabel').innerText = `طلاب مجموعة: ${groupName}`;
+            const modal = new bootstrap.Modal(document.getElementById('viewStudentsModal'));
+            modal.show();
+
+            const loadStudents = async () => {
+                try {
+                    const response = await api.getGroup(groupId);
+                    const group = response.data;
+                    const tbody = document.getElementById('group-students-body');
+                    tbody.innerHTML = '';
+                    
+                    if (!group.students || group.students.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center">لا يوجد طلاب في هذه المجموعة</td></tr>';
+                    } else {
+                        group.students.forEach(s => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${s.name}</td>
+                                <td>${s.studentId}</td>
+                                <td>${s.email}</td>
+                                <td><button class="btn btn-sm btn-outline-danger border-0 remove-student-btn" data-sid="${s._id}"><i class="fas fa-trash"></i></button></td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                } catch (e) { console.error(e); }
+            };
+
+            await loadStudents();
+
+            document.getElementById('save-student-btn').onclick = async () => {
+                const name = document.getElementById('new-student-name').value;
+                const studentId = document.getElementById('new-student-id').value;
+                const email = document.getElementById('new-student-email').value;
+                const age = document.getElementById('new-student-age').value;
+
+                if (!name || !studentId || !email) {
+                    showNotification('يرجى ملء البيانات المطلوبة', 'error');
+                    return;
+                }
+
+                try {
+                    // 1. Create student
+                    const sResponse = await api.createStudent({ name, studentId, email, age, grade: groupGrade, password: '123456' });
+                    // 2. Add to group
+                    await api.addStudentToGroup(groupId, sResponse.data._id);
+                    showNotification('تم إضافة الطالب بنجاح');
+                    document.getElementById('add-student-to-group-form').reset();
+                    await loadStudents();
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                }
+            };
+        };
+    });
+
+    container.querySelectorAll('.delete-group').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (confirm('هل أنت متأكد من حذف هذه المجموعة؟')) {
+                try {
+                    await api.deleteGroup(btn.dataset.id);
+                    showNotification('تم حذف المجموعة');
+                    initGroupManagement(); // Refresh
+                } catch (error) {
+                    showNotification('خطأ في الحذف', 'error');
                 }
             }
         });
     });
+}
+
+// --- Quiz Creator Logic ---
+async function initStudentQuizzes() {
+    const container = document.getElementById('student-quizzes-container');
+    if (!container) return;
+
+    const studentId = localStorage.getItem('mualimi_student_id');
+
+    try {
+        const [quizzesRes, gradesRes] = await Promise.all([
+            api.getActiveQuizzes(),
+            studentId ? api.getStudentGrades(studentId) : Promise.resolve({ data: [] })
+        ]);
+
+        const quizzes = quizzesRes.data || [];
+        const studentGrades = gradesRes.data || [];
+        
+        container.innerHTML = '';
+        
+        if (quizzes.length === 0) {
+            container.innerHTML = '<div class="text-center py-5"><p class="text-muted">لا توجد اختبارات حالياً</p></div>';
+            return;
+        }
+
+        quizzes.forEach(quiz => {
+            const hasTaken = studentGrades.some(g => g.quiz && g.quiz._id === quiz._id);
+            const div = document.createElement('div');
+            div.className = 'quiz-card fade-in';
+            div.innerHTML = `
+                <div>
+                    <h6 class="fw-bold mb-1">${quiz.title}</h6>
+                    <p class="small text-muted mb-0"><i class="fas fa-layer-group me-1"></i> ${quiz.group ? quiz.group.name : 'عام'}</p>
+                </div>
+                ${hasTaken ? 
+                    `<button class="btn btn-success btn-sm rounded-pill px-4" disabled>تم الحل <i class="fas fa-check-circle ms-1"></i></button>` :
+                    `<button class="btn btn-primary btn-sm rounded-pill px-4 start-quiz" data-id="${quiz._id}">ابدأ</button>`
+                }
+            `;
+            container.appendChild(div);
+        });
+
+        container.querySelectorAll('.start-quiz').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const quizId = btn.dataset.id;
+                // If student is already logged in, skip modal
+                const loggedInStudentId = localStorage.getItem('mualimi_student_id');
+                if (loggedInStudentId) {
+                    window.location.href = `take-quiz.html?id=${quizId}`;
+                    return;
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('studentLoginModal'));
+                modal.show();
+                
+                const verifyBtn = document.getElementById('verify-student-btn');
+                verifyBtn.onclick = async () => {
+                    const name = document.getElementById('verify-name').value;
+                    const studentId = document.getElementById('verify-id').value;
+                    const email = document.getElementById('verify-email').value;
+                    const age = document.getElementById('verify-age').value;
+                    const password = document.getElementById('verify-password')?.value || '123456'; // Default if not in modal
+
+                    if (!name || !studentId) {
+                        showNotification('يرجى إدخال كافة البيانات', 'error');
+                        return;
+                    }
+
+                    try {
+                        // 1. Try to login/verify first
+                        let student;
+                        try {
+                            const vResponse = await api.request('/auth/student/login', {
+                                method: 'POST',
+                                body: JSON.stringify({ studentId, password })
+                            });
+                            student = vResponse.data;
+                        } catch (e) {
+                            // 2. If login fails (not found), register them
+                            if (email && age) {
+                                const quizRes = await api.getQuiz(quizId);
+                                const regResponse = await api.request('/auth/student/signup', {
+                                    method: 'POST',
+                                    body: JSON.stringify({ 
+                                        name, studentId, email, age, password,
+                                        grade: quizRes.data.group ? quizRes.data.group.grade : '1' 
+                                    })
+                                });
+                                student = regResponse.data;
+                                // Add to group if quiz has one
+                                if (quizRes.data.group) {
+                                    await api.addStudentToGroup(quizRes.data.group._id, student._id);
+                                }
+                                showNotification('تم تسجيل بياناتك بنجاح');
+                            } else {
+                                throw new Error('الطالب غير مسجل، يرجى إكمال كافة البيانات للتسجيل');
+                            }
+                        }
+
+                        if (student) {
+                            localStorage.setItem('mualimi_role', 'student');
+                            localStorage.setItem('mualimi_student_id', student._id);
+                            localStorage.setItem('mualimi_student_name', student.name);
+                            window.location.href = `take-quiz.html?id=${quizId}`;
+                        }
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    }
+                };
+            });
+        });
+    } catch (e) {}
+}
+async function initStudentDashboard() {
+    const studentName = localStorage.getItem('mualimi_student_name') || 'طالب';
+    const headerName = document.querySelector('.student-header h4');
+    if (headerName) headerName.textContent = `مرحباً، ${studentName}`;
+    
+    const studentId = localStorage.getItem('mualimi_student_id');
+    const quizCountEl = document.getElementById('active-quizzes-count');
+
+    if (quizCountEl) {
+        try {
+            const [quizzesRes, gradesRes] = await Promise.all([
+                api.getActiveQuizzes(),
+                studentId ? api.getStudentGrades(studentId) : Promise.resolve({ data: [] })
+            ]);
+
+            const quizzes = quizzesRes.data || [];
+            const grades = gradesRes.data || [];
+            
+            // Count quizzes that haven't been taken yet
+            const untakenCount = quizzes.filter(q => !grades.some(g => g.quiz && g.quiz._id === q._id)).length;
+            
+            quizCountEl.innerText = `لديك ${untakenCount} اختبار جديد`;
+        } catch (e) {
+            console.error('Dashboard Stats Error:', e);
+        }
+    }
+}
+
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // Health check
+    try {
+        await api.checkHealth();
+    } catch (e) {
+        showNotification('الخادم غير متصل. تأكد من تشغيل backend.', 'error');
+    }
+
+    // Sidebar Toggle
+    const toggleBtn = document.querySelector('.mobile-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    if (toggleBtn && sidebar) {
+        toggleBtn.onclick = () => {
+            sidebar.classList.toggle('active');
+            const icon = toggleBtn.querySelector('i');
+            icon.className = sidebar.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
+        };
+    }
+
+    // Sync Stats
+    loadDashboardStats();
+    
+    // Init Modules
+    initGroupManagement();
+    initStudentQuizzes();
+    initStudentDashboard();
 });
