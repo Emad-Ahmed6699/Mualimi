@@ -174,6 +174,17 @@ class MualimAPI {
         });
     }
 
+    async getStudentQuizzes(groupId) {
+        return this.request(`/quizzes/student/${groupId}`);
+    }
+
+    async verifyQuizAccess(quizId, accessCode) {
+        return this.request(`/quizzes/${quizId}/verify-access`, {
+            method: 'POST',
+            body: JSON.stringify({ accessCode }),
+        });
+    }
+
 
     // ============= GRADES =============
     async getAllGrades() {

@@ -29,6 +29,15 @@ const gradeSchema = new mongoose.Schema({
         required: true
     },
     feedback: String,
+    cheatingFlag: {
+        type: Boolean,
+        default: false
+    },
+    cheatingDetails: String,
+    warningsPending: {
+        type: Boolean,
+        default: false
+    },
     recordedAt: {
         type: Date,
         default: Date.now

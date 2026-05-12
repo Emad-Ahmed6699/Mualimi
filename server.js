@@ -34,11 +34,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/student-dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'student-dashboard.html'));
+    res.sendFile(path.join(__dirname, 'pages', 'student', 'dashboard.html'));
 });
 
 app.get('/teacher-dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'teacher-dashboard.html'));
+    res.sendFile(path.join(__dirname, 'pages', 'teacher', 'dashboard.html'));
 });
 
 // Health check

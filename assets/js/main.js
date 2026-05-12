@@ -76,10 +76,12 @@ async function loadDashboardStats() {
                 }
             }
 
-            // Pending Alerts (Students with score < 50%)
+            // Pending Alerts (Students with score < 50% OR Cheating Flags)
             if (pendingAlertsEl) {
                 const failingCount = grades.filter(g => (g.percentage || 0) < 50).length;
-                pendingAlertsEl.innerText = failingCount;
+                const cheatingCount = grades.filter(g => g.cheatingFlag === true).length;
+                const totalAlerts = failingCount + cheatingCount;
+                pendingAlertsEl.innerText = totalAlerts;
             }
 
             // Load last quizzes into table
@@ -327,11 +329,31 @@ async function initStudentQuizzes() {
     const studentId = localStorage.getItem('mualimi_student_id');
 
     try {
-        const [quizzesRes, gradesRes] = await Promise.all([
-            api.getActiveQuizzes(),
-            studentId ? api.getStudentGrades(studentId) : Promise.resolve({ data: [] })
-        ]);
+        // First, get student info to find their group
+        let groupId = localStorage.getItem('mualimi_student_group');
+        
+        if (!groupId && studentId) {
+            try {
+                const studentRes = await api.getStudent(studentId);
+                if (studentRes.data && studentRes.data.group) {
+                    groupId = studentRes.data.group._id || studentRes.data.group;
+                    localStorage.setItem('mualimi_student_group', groupId);
+                }
+            } catch (e) {
+                console.error('Error fetching student group:', e);
+            }
+        }
 
+        // Get quizzes for the student's group
+        let quizzesRes;
+        if (groupId) {
+            quizzesRes = await api.getStudentQuizzes(groupId);
+        } else {
+            quizzesRes = await api.getActiveQuizzes(); // Fallback to all active quizzes
+        }
+
+        const gradesRes = studentId ? await api.getStudentGrades(studentId) : Promise.resolve({ data: [] });
+        
         const quizzes = quizzesRes.data || [];
         const studentGrades = gradesRes.data || [];
         
@@ -362,15 +384,33 @@ async function initStudentQuizzes() {
         container.querySelectorAll('.start-quiz').forEach(btn => {
             btn.addEventListener('click', () => {
                 const quizId = btn.dataset.id;
-                // If student is already logged in, skip modal
                 const loggedInStudentId = localStorage.getItem('mualimi_student_id');
+                
+                // If student is already logged in, show access code modal
                 if (loggedInStudentId) {
-                    window.location.href = `take-quiz.html?id=${quizId}`;
+                    document.getElementById('quiz-access-code').value = '';
+                    document.getElementById('access-code-error').style.display = 'none';
+                    document.getElementById('access-code-error').textContent = '';
+                    
+                    const accessModal = new bootstrap.Modal(document.getElementById('quizAccessModal'));
+                    accessModal.show();
+                    
+                    document.getElementById('verify-access-btn').onclick = async () => {
+                        await verifyQuizAccess(quizId);
+                    };
+                    
+                    // Allow Enter key to submit
+                    document.getElementById('quiz-access-code').onkeypress = (e) => {
+                        if (e.key === 'Enter') {
+                            verifyQuizAccess(quizId);
+                        }
+                    };
                     return;
                 }
 
-                const modal = new bootstrap.Modal(document.getElementById('studentLoginModal'));
-                modal.show();
+                // If not logged in, show login modal first
+                const loginModal = new bootstrap.Modal(document.getElementById('studentLoginModal'));
+                loginModal.show();
                 
                 const verifyBtn = document.getElementById('verify-student-btn');
                 verifyBtn.onclick = async () => {
@@ -378,7 +418,7 @@ async function initStudentQuizzes() {
                     const studentId = document.getElementById('verify-id').value;
                     const email = document.getElementById('verify-email').value;
                     const age = document.getElementById('verify-age').value;
-                    const password = document.getElementById('verify-password')?.value || '123456'; // Default if not in modal
+                    const password = document.getElementById('verify-password')?.value || '123456';
 
                     if (!name || !studentId) {
                         showNotification('يرجى إدخال كافة البيانات', 'error');
@@ -386,7 +426,6 @@ async function initStudentQuizzes() {
                     }
 
                     try {
-                        // 1. Try to login/verify first
                         let student;
                         try {
                             const vResponse = await api.request('/auth/student/login', {
@@ -395,7 +434,6 @@ async function initStudentQuizzes() {
                             });
                             student = vResponse.data;
                         } catch (e) {
-                            // 2. If login fails (not found), register them
                             if (email && age) {
                                 const quizRes = await api.getQuiz(quizId);
                                 const regResponse = await api.request('/auth/student/signup', {
@@ -406,7 +444,6 @@ async function initStudentQuizzes() {
                                     })
                                 });
                                 student = regResponse.data;
-                                // Add to group if quiz has one
                                 if (quizRes.data.group) {
                                     await api.addStudentToGroup(quizRes.data.group._id, student._id);
                                 }
@@ -420,7 +457,23 @@ async function initStudentQuizzes() {
                             localStorage.setItem('mualimi_role', 'student');
                             localStorage.setItem('mualimi_student_id', student._id);
                             localStorage.setItem('mualimi_student_name', student.name);
-                            window.location.href = `take-quiz.html?id=${quizId}`;
+                            if (student.group) {
+                                localStorage.setItem('mualimi_student_group', student.group._id);
+                            }
+                            
+                            // Now show access code modal
+                            loginModal.hide();
+                            
+                            document.getElementById('quiz-access-code').value = '';
+                            document.getElementById('access-code-error').style.display = 'none';
+                            document.getElementById('access-code-error').textContent = '';
+                            
+                            const accessModal = new bootstrap.Modal(document.getElementById('quizAccessModal'));
+                            accessModal.show();
+                            
+                            document.getElementById('verify-access-btn').onclick = async () => {
+                                await verifyQuizAccess(quizId);
+                            };
                         }
                     } catch (error) {
                         showNotification(error.message, 'error');
@@ -429,6 +482,35 @@ async function initStudentQuizzes() {
             });
         });
     } catch (e) {}
+}
+
+async function verifyQuizAccess(quizId) {
+    const accessCode = document.getElementById('quiz-access-code').value.trim();
+    const errorEl = document.getElementById('access-code-error');
+    
+    if (!accessCode) {
+        errorEl.textContent = 'يرجى إدخال رمز الدخول';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    try {
+        const response = await api.verifyQuizAccess(quizId, accessCode);
+        if (response.success) {
+            // Store quiz data for use in take-quiz page
+            sessionStorage.setItem('current-quiz-data', JSON.stringify(response.data));
+            
+            // Close modal and redirect
+            const modal = bootstrap.Modal.getInstance(document.getElementById('quizAccessModal'));
+            if (modal) modal.hide();
+            
+            window.location.href = `take-quiz.html?id=${quizId}`;
+        }
+    } catch (error) {
+        errorEl.textContent = error.message || 'رمز الدخول غير صحيح';
+        errorEl.style.display = 'block';
+        showNotification(error.message || 'خطأ في التحقق', 'error');
+    }
 }
 async function initStudentDashboard() {
     const studentName = localStorage.getItem('mualimi_student_name') || 'طالب';
@@ -460,11 +542,12 @@ async function initStudentDashboard() {
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // Health check
+    // Health check (silent mode - logs to console only)
     try {
         await api.checkHealth();
+        console.log('✓ Backend server is running');
     } catch (e) {
-        showNotification('الخادم غير متصل. تأكد من تشغيل backend.', 'error');
+        console.warn('⚠ Backend server is not responding:', e.message);
     }
 
     // Sidebar Toggle

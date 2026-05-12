@@ -25,12 +25,12 @@
             <span class="badge bg-primary">لوحة الإدارة</span>
         </div>
         <div class="nav flex-column">
-            <a href="../../teacher-dashboard.html" class="nav-link"><i class="fas fa-home me-2"></i> الرئيسة</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-home me-2"></i> الرئيسة</a>
             <a href="groups.html" class="nav-link"><i class="fas fa-users me-2"></i> المجموعات</a>
             <a href="quiz-creator.html" class="nav-link active"><i class="fas fa-plus-circle me-2"></i> منشئ الاختبارات</a>
             <a href="reports.html" class="nav-link"><i class="fas fa-chart-bar me-2"></i> التقارير والنتائج</a>
             <hr>
-            <a href="../../index.html" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
+            <a href="javascript:void(0)" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
         </div>
     </nav>
 
@@ -59,6 +59,16 @@
                         <label for="quiz-duration" class="form-label">مدة الاختبار (بالدقائق)</label>
                         <input type="number" id="quiz-duration" class="form-control" value="30">
                     </div>
+                    <div class="col-md-3">
+                        <label for="access-code" class="form-label">رمز الدخول</label>
+                        <div class="input-group">
+                            <input type="text" id="access-code" class="form-control" placeholder="مثل: 1234AB" maxlength="10">
+                            <button class="btn btn-outline-secondary" type="button" id="generate-code-btn" title="توليد رمز عشوائي">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">رمز يجب على الطالب إدخاله قبل الامتحان</small>
+                    </div>
                     <div class="col-md-6">
                         <label for="quiz-start" class="form-label">تاريخ البدء</label>
                         <input type="datetime-local" id="quiz-start" class="form-control">
@@ -83,6 +93,7 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../assets/js/api.js"></script>
     <script src="../../assets/js/modules/quiz-module.js"></script>
     <script src="../../assets/js/main.js"></script>
@@ -162,10 +173,39 @@
             // Setup event listeners
             document.getElementById('add-question-btn').addEventListener('click', addQuestion);
             document.getElementById('publish-quiz-btn').addEventListener('click', submitQuiz);
+            document.getElementById('save-draft-btn').addEventListener('click', saveDraft);
+            document.getElementById('generate-code-btn').addEventListener('click', generateAccessCode);
         });
 
         function addQuestion() {
             QuizModule.addQuestion(document.getElementById('questions-container'));
+        }
+
+        function generateAccessCode() {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 8; i++) {
+                code += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            document.getElementById('access-code').value = code;
+        }
+
+        async function saveDraft() {
+            const title = document.getElementById('quiz-title').value.trim();
+            if (!title) {
+                showNotification('يرجى إدخال عنوان الاختبار أولاً', 'error');
+                return;
+            }
+            showNotification('تم حفظ المسودة محلياً', 'info');
+            const draft = {
+                title,
+                group: document.getElementById('target-group').value,
+                duration: document.getElementById('quiz-duration').value,
+                accessCode: document.getElementById('access-code').value,
+                startDate: document.getElementById('quiz-start').value,
+                endDate: document.getElementById('quiz-end').value,
+            };
+            localStorage.setItem('quiz_draft', JSON.stringify(draft));
         }
 
         async function submitQuiz() {
@@ -177,6 +217,8 @@
             const group = document.getElementById('target-group').value;
             const startDate = document.getElementById('quiz-start').value;
             const endDate = document.getElementById('quiz-end').value;
+            const accessCode = document.getElementById('access-code').value.trim();
+            const duration = parseInt(document.getElementById('quiz-duration').value) || 30;
 
             // Validation
             if (!title) {
@@ -186,6 +228,11 @@
 
             if (!group) {
                 showNotification('يرجى اختيار المجموعة المستهدفة', 'error');
+                return;
+            }
+
+            if (!accessCode) {
+                showNotification('يرجى إدخال رمز الدخول (أو اضغط على الزر العشوائي)', 'error');
                 return;
             }
 
@@ -204,7 +251,9 @@
                 questions,
                 totalPoints,
                 startDate,
-                endDate
+                endDate,
+                duration,
+                accessCode
             };
 
             try {
@@ -219,7 +268,7 @@
                     showNotification('تم نشر الاختبار بنجاح!', 'success');
                 }
                 
-                setTimeout(() => window.location.href = '../../teacher-dashboard.html', 1500);
+                setTimeout(() => window.location.href = 'dashboard.html', 1500);
             } catch (error) {
                 showNotification('فشل في العملية: ' + error.message, 'error');
                 btn.disabled = false;

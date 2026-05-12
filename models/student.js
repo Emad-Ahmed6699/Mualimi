@@ -31,6 +31,10 @@ const studentSchema = new mongoose.Schema({
         minlength: 6,
         select: false
     },
+    group: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Group'
+    },
     createdAt: {
         type: Date,
         default: Date.now

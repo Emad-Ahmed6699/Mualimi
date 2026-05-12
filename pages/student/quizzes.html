@@ -37,7 +37,7 @@
 
     <header class="student-header">
         <div class="d-flex align-items-center mb-2">
-            <a href="../../student-dashboard.html" class="text-dark me-3" title="العودة للرئيسة"><i class="fas fa-arrow-right"></i></a>
+            <a href="dashboard.html" class="text-dark me-3" title="العودة للرئيسة"><i class="fas fa-arrow-right"></i></a>
             <h4 class="fw-bold mb-0">الاختبارات النشطة</h4>
         </div>
         <p class="text-muted small mb-0">لديك اختبارات تحتاج للحل الآن</p>
@@ -87,9 +87,44 @@
         </div>
     </div>
 
+    <!-- Quiz Access Code Modal -->
+    <div class="modal fade" id="quizAccessModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">رمز دخول الامتحان</h5>
+                    <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        المعلم حدد رمز دخول لهذا الامتحان. يرجى إدخاله بشكل صحيح.
+                    </p>
+                    <div class="alert alert-warning d-flex align-items-start" role="alert">
+                        <i class="fas fa-exclamation-triangle me-3 mt-1 flex-shrink-0"></i>
+                        <div>
+                            <strong>تنبيه مهم:</strong> بمجرد الدخول للامتحان، لا يمكنك مغادرة الصفحة. سيتم إغلاق الامتحان تلقائياً.
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold">أدخل رمز الدخول:</label>
+                        <input type="text" id="quiz-access-code" class="form-control rounded-pill form-control-lg text-center" placeholder="XXXX-XXXX" autofocus>
+                        <small class="text-danger d-block mt-2" id="access-code-error" style="display:none;"></small>
+                    </div>
+                    <button id="verify-access-btn" class="btn btn-primary w-100 rounded-pill py-2">
+                        التحقق والدخول <i class="fas fa-chevron-left ms-2"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary w-100 rounded-pill py-2 mt-2" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-right me-2"></i> إلغاء والرجوع
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Navigation -->
     <nav class="bottom-nav">
-        <a href="../../student-dashboard.html" class="nav-item">
+        <a href="dashboard.html" class="nav-item">
             <i class="fas fa-home"></i>
             الرئيسة
         </a>
@@ -107,12 +142,12 @@
         </a>
     </nav>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../assets/js/api.js"></script>
     <script src="../../assets/js/main.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const role = localStorage.getItem('mualimi_role');
-            // Allow access even if not logged in, but the logic in main.js will prompt for modal if no student_id
+            // Page is ready - initStudentQuizzes() is called by main.js automatically
         });
     </script>
 </body>

@@ -78,6 +78,16 @@
         </div>
     </header>
 
+    <!-- Warning Alert -->
+    <div class="alert alert-warning alert-dismissible fade show mx-3 mt-3" role="alert" id="quiz-warning-alert">
+        <div class="d-flex align-items-start">
+            <i class="fas fa-exclamation-triangle me-3 flex-shrink-0 mt-1"></i>
+            <div>
+                <strong>⚠️ تحذير مهم:</strong> لا تغادر هذه الصفحة أثناء الامتحان. إذا حاولت المغادرة أو تبديل نافذة المتصفح، سيتم إنهاء الامتحان تلقائياً وتسجيل محاولة الغش.
+            </div>
+        </div>
+    </div>
+
     <div class="container mt-4 pb-5">
         <div class="row justify-content-center">
             <div class="col-lg-8" id="questions-container">
@@ -102,7 +112,7 @@
                     </div>
                     <h3 class="fw-bold mb-3">تم إرسال إجابتك!</h3>
                     <p class="text-muted mb-4">لقد انتهيت من حل الاختبار بنجاح. سيتم مراجعة الدرجات قريباً.</p>
-                    <button class="btn btn-primary w-100 rounded-pill" onclick="window.location.href='../../student-dashboard.html'">
+                    <button class="btn btn-primary w-100 rounded-pill" onclick="window.location.href='dashboard.html'">
                         العودة للرئيسة
                     </button>
                 </div>
@@ -114,6 +124,26 @@
     <script src="../../assets/js/api.js"></script>
     <script src="../../assets/js/main.js"></script>
     <script>
+        // Anti-cheating system
+        let cheatingData = {
+            tabSwitchAttempts: 0,
+            windowBlurAttempts: 0,
+            warnings: [],
+            suspiciousActivity: [],
+            warningStartTime: null,
+            isWarning: false
+        };
+        
+        let quizState = {
+            isActive: false,
+            quizId: null,
+            studentId: null,
+            timerInterval: null,
+            timeRemaining: 0,
+            startTime: null,
+            autoSubmitTimer: null
+        };
+
         // Specific logic for take-quiz page
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -122,9 +152,12 @@
             
             if (!quizId || !studentId) {
                 alert('عذراً، حدث خطأ في البيانات. سيتم توجيهك للرئيسة.');
-                window.location.href = '../../student-dashboard.html';
+                window.location.href = 'dashboard.html';
                 return;
             }
+
+            quizState.quizId = quizId;
+            quizState.studentId = studentId;
 
             try {
                 // Check if student already taken this quiz
@@ -133,7 +166,7 @@
                 
                 if (hasTaken) {
                     alert('لقد قمت بحل هذا الاختبار مسبقاً!');
-                    window.location.href = '../../student-dashboard.html';
+                    window.location.href = 'dashboard.html';
                     return;
                 }
 
@@ -149,11 +182,190 @@
                 document.getElementById('submit-quiz-btn').style.display = 'inline-block';
                 document.getElementById('submit-quiz-btn').onclick = () => submitQuiz(quizId, studentId);
                 
+                // Enable anti-cheating system
+                quizState.isActive = true;
+                initAntiCheatSystem();
+                
             } catch (error) {
                 console.error(error);
                 showNotification('خطأ في تحميل الاختبار', 'error');
             }
         });
+
+        function initAntiCheatSystem() {
+            // Detect tab/window switching
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            
+            // Detect window blur (user leaving window)
+            window.addEventListener('blur', handleWindowBlur);
+            window.addEventListener('focus', handleWindowFocus);
+            
+            // Prevent keyboard shortcuts (Ctrl+C, Ctrl+V, F12, etc)
+            document.addEventListener('keydown', preventCheatKeybinds);
+            
+            // Prevent right-click
+            document.addEventListener('contextmenu', preventRightClick);
+            
+            // Detect page unload/refresh
+            window.addEventListener('beforeunload', handleBeforeUnload);
+        }
+
+        function handleVisibilityChange() {
+            if (!quizState.isActive) return;
+            
+            if (document.hidden) {
+                // Tab switched away
+                cheatingData.tabSwitchAttempts++;
+                cheatingData.suspiciousActivity.push({
+                    type: 'tab_switch',
+                    timestamp: new Date(),
+                    attempt: cheatingData.tabSwitchAttempts
+                });
+                showCheatingWarning('⚠️ تحذير: لا يُسمح بمغادرة الامتحان أثناء حله!');
+                startCheatingCountdown();
+            }
+        }
+
+        function handleWindowBlur() {
+            if (!quizState.isActive) return;
+            
+            cheatingData.windowBlurAttempts++;
+            cheatingData.suspiciousActivity.push({
+                type: 'window_blur',
+                timestamp: new Date(),
+                attempt: cheatingData.windowBlurAttempts
+            });
+            showCheatingWarning('⚠️ تحذير: يجب أن تركز على الامتحان!');
+            startCheatingCountdown();
+        }
+
+        function handleWindowFocus() {
+            if (!quizState.isActive) return;
+            // User returned to window - can extend warning
+        }
+
+        function startCheatingCountdown() {
+            if (cheatingData.isWarning) return; // Already in warning
+            
+            cheatingData.isWarning = true;
+            cheatingData.warningStartTime = Date.now();
+            let remainingSeconds = 10;
+
+            const warningInterval = setInterval(() => {
+                if (!quizState.isActive) {
+                    clearInterval(warningInterval);
+                    return;
+                }
+
+                const elapsed = Math.floor((Date.now() - cheatingData.warningStartTime) / 1000);
+                remainingSeconds = 10 - elapsed;
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(warningInterval);
+                    endQuizDueToCheating();
+                } else {
+                    updateWarningDisplay(remainingSeconds);
+                }
+            }, 100);
+        }
+
+        function showCheatingWarning(message) {
+            const existingWarning = document.getElementById('cheating-warning');
+            if (existingWarning) {
+                existingWarning.remove();
+            }
+
+            const warning = document.createElement('div');
+            warning.id = 'cheating-warning';
+            warning.className = 'alert alert-danger alert-dismissible fade show shadow-lg';
+            warning.style.cssText = `
+                position: fixed;
+                top: 80px;
+                left: 20px;
+                right: 20px;
+                z-index: 9999;
+                max-width: 500px;
+                animation: slideIn 0.3s ease-out;
+            `;
+            warning.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-2" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>${message}</strong>
+                        <div class="small mt-2">سيتم إغلاق الامتحان في: <span id="warning-countdown">10</span> ثواني</div>
+                    </div>
+                </div>
+            `;
+            document.body.insertBefore(warning, document.body.firstChild);
+
+            setTimeout(() => {
+                if (warning.parentElement) warning.remove();
+            }, 10000);
+        }
+
+        function updateWarningDisplay(seconds) {
+            const countdownEl = document.getElementById('warning-countdown');
+            if (countdownEl) {
+                countdownEl.textContent = seconds;
+            }
+        }
+
+        function endQuizDueToCheating() {
+            if (!quizState.isActive) return;
+            
+            quizState.isActive = false;
+            cheatingData.isWarning = false;
+            
+            showNotification('❌ تم إغلاق الامتحان بسبب محاولة الغش!', 'error');
+            
+            // Mark as cheating and submit automatically
+            submitQuizWithCheatingFlag();
+        }
+
+        function preventCheatKeybinds(e) {
+            if (!quizState.isActive) return;
+            
+            // Ctrl+C, Ctrl+X, Ctrl+V, F12, Ctrl+Shift+I, Ctrl+Shift+J
+            if (
+                (e.ctrlKey && (e.key === 'c' || e.key === 'x' || e.key === 'v')) ||
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j'))
+            ) {
+                e.preventDefault();
+                cheatingData.suspiciousActivity.push({
+                    type: 'prohibited_key',
+                    key: e.key,
+                    timestamp: new Date()
+                });
+                showNotification('⚠️ هذا الإجراء غير مسموح به!', 'warning');
+            }
+        }
+
+        function preventRightClick(e) {
+            if (!quizState.isActive) return;
+            e.preventDefault();
+            cheatingData.suspiciousActivity.push({
+                type: 'right_click',
+                timestamp: new Date()
+            });
+        }
+
+        function handleBeforeUnload(e) {
+            if (!quizState.isActive) return;
+            
+            // Record the cheating attempt
+            cheatingData.cheatingFlags = true;
+            cheatingData.windowBlurAttempts++;
+            cheatingData.cheatingDetails = 'محاولة مغادرة الامتحان أو إغلاق الصفحة';
+            cheatingData.warnings.push({
+                type: 'Leave Attempt',
+                timestamp: new Date()
+            });
+            
+            e.preventDefault();
+            e.returnValue = 'الامتحان جاري! هل أنت متأكد من رغبتك في المغادرة؟ سيتم تسجيل محاولة الغش!';
+            return e.returnValue;
+        }
 
         function renderQuizQuestions(questions) {
             const container = document.getElementById('questions-container');
@@ -192,24 +404,34 @@
         };
 
         function startTimer(minutes) {
-            let seconds = minutes * 60;
+            quizState.timeRemaining = minutes * 60;
+            quizState.startTime = Date.now();
             const timerEl = document.getElementById('quiz-timer');
             
-            const interval = setInterval(() => {
-                const mins = Math.floor(seconds / 60);
-                const secs = seconds % 60;
+            quizState.timerInterval = setInterval(() => {
+                const mins = Math.floor(quizState.timeRemaining / 60);
+                const secs = quizState.timeRemaining % 60;
                 timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 
-                if (seconds <= 0) {
-                    clearInterval(interval);
+                // Warning when time is running out (last 1 minute)
+                if (quizState.timeRemaining === 60) {
+                    showNotification('⏰ دقيقة واحدة متبقية!', 'info');
+                }
+                
+                if (quizState.timeRemaining <= 0) {
+                    clearInterval(quizState.timerInterval);
                     showNotification('انتهى الوقت! سيتم إرسال إجاباتك تلقائياً.', 'info');
+                    quizState.isActive = false;
                     document.getElementById('submit-quiz-btn').click();
                 }
-                seconds--;
+                quizState.timeRemaining--;
             }, 1000);
         }
 
         async function submitQuiz(quizId, studentId) {
+            if (quizState.timerInterval) clearInterval(quizState.timerInterval);
+            quizState.isActive = false;
+
             const answers = [];
             document.querySelectorAll('.options-list').forEach((list, idx) => {
                 answers.push({
@@ -221,7 +443,8 @@
             try {
                 await api.submitQuiz(quizId, {
                     studentId,
-                    answers
+                    answers,
+                    cheatingData: null // Normal submission
                 });
                 const modal = new bootstrap.Modal(document.getElementById('resultModal'));
                 modal.show();
@@ -229,6 +452,71 @@
                 showNotification('فشل في إرسال الإجابات: ' + error.message, 'error');
             }
         }
+
+        async function submitQuizWithCheatingFlag() {
+            const answers = [];
+            document.querySelectorAll('.options-list').forEach((list, idx) => {
+                answers.push({
+                    questionIndex: idx,
+                    selectedAnswer: list.dataset.selectedValue || ''
+                });
+            });
+
+            try {
+                await api.submitQuiz(quizState.quizId, {
+                    studentId: quizState.studentId,
+                    answers,
+                    cheatingData: {
+                        cheatingFlags: true,
+                        tabSwitchAttempts: cheatingData.tabSwitchAttempts,
+                        windowBlurAttempts: cheatingData.windowBlurAttempts,
+                        cheatingDetails: `محاولات الخروج: ${cheatingData.tabSwitchAttempts + cheatingData.windowBlurAttempts}`,
+                        warnings: cheatingData.warnings,
+                        suspiciousActivity: cheatingData.suspiciousActivity.map(a => ({
+                            type: a.type,
+                            timestamp: a.timestamp
+                        }))
+                    }
+                });
+                
+                const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 rounded-4 shadow">
+                            <div class="modal-body text-center p-5">
+                                <div class="mb-4">
+                                    <i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>
+                                </div>
+                                <h3 class="fw-bold mb-3">❌ تم اكتشاف غش!</h3>
+                                <p class="text-danger mb-4">تم إغلاق الامتحان بسبب محاولة الغش. سيتم إبلاغ المعلم بهذه الحادثة.</p>
+                                <button class="btn btn-primary w-100 rounded-pill" onclick="window.location.href='dashboard.html'">
+                                    العودة للرئيسة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                modal.show();
+            } catch (error) {
+                showNotification('فشل في إرسال الإجابات: ' + error.message, 'error');
+            }
+        }
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

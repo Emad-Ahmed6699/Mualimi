@@ -80,12 +80,31 @@ router.post('/student/signup', async (req, res) => {
             password
         });
 
+        // Auto-assign to Group A (مجموعة أ) as default
+        const Group = require('../models/group');
+        const defaultGroup = await Group.findOne({ name: 'أ' });
+        
+        if (defaultGroup) {
+            student.group = defaultGroup._id;
+            await student.save();
+            
+            // Add student to group's students list
+            if (!defaultGroup.students.includes(student._id)) {
+                defaultGroup.students.push(student._id);
+                await defaultGroup.save();
+            }
+        }
+
         res.status(201).json({
             success: true,
             data: {
                 _id: student._id,
                 name: student.name,
                 studentId: student.studentId,
+                group: defaultGroup ? {
+                    _id: defaultGroup._id,
+                    name: defaultGroup.name
+                } : null,
                 role: 'student'
             }
         });
@@ -100,7 +119,7 @@ router.post('/student/login', async (req, res) => {
     try {
         const { studentId, password } = req.body;
 
-        const student = await Student.findOne({ studentId }).select('+password');
+        const student = await Student.findOne({ studentId }).select('+password').populate('group');
         if (!student || !(await student.matchPassword(password))) {
             return res.status(401).json({ success: false, error: 'كود الطالب أو كلمة المرور غير صحيحة' });
         }
@@ -111,6 +130,10 @@ router.post('/student/login', async (req, res) => {
                 _id: student._id,
                 name: student.name,
                 studentId: student.studentId,
+                group: student.group ? {
+                    _id: student.group._id,
+                    name: student.group.name
+                } : null,
                 role: 'student'
             }
         });

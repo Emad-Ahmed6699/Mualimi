@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="../../assets/css/style.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body class="fade-in">
 
@@ -27,12 +29,12 @@
             <span class="badge bg-primary">لوحة الإدارة</span>
         </div>
         <div class="nav flex-column">
-            <a href="../../teacher-dashboard.html" class="nav-link"><i class="fas fa-home me-2"></i> الرئيسة</a>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-home me-2"></i> الرئيسة</a>
             <a href="groups.html" class="nav-link"><i class="fas fa-users me-2"></i> المجموعات</a>
             <a href="quiz-creator.html" class="nav-link"><i class="fas fa-plus-circle me-2"></i> منشئ الاختبارات</a>
             <a href="reports.html" class="nav-link active"><i class="fas fa-chart-bar me-2"></i> التقارير والنتائج</a>
             <hr>
-            <a href="../../index.html" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
+            <a href="javascript:void(0)" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> تسجيل الخروج</a>
         </div>
     </nav>
 
@@ -104,6 +106,7 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../assets/js/api.js"></script>
     <script src="../../assets/js/main.js"></script>
     <script>
@@ -121,6 +124,8 @@
                 );
                 renderGradesTable(filtered);
             });
+            
+            document.getElementById('download-report-btn').addEventListener('click', exportToExcel);
         });
 
         async function loadReports() {
@@ -254,6 +259,47 @@
                     }
                 }
             });
+        }
+
+        function exportToExcel() {
+            if (allGrades.length === 0) {
+                showNotification('لا توجد بيانات لتصديرها', 'error');
+                return;
+            }
+
+            // Prepare data for Excel
+            const exportData = allGrades.map(grade => {
+                const percentage = Math.round(grade.percentage || 0);
+                let statusText = 'ناجح';
+                if (percentage < 50) statusText = 'راسب';
+                else if (percentage >= 85) statusText = 'ممتاز';
+
+                return {
+                    'اسم الطالب': grade.student ? grade.student.name : 'طالب محذوف',
+                    'كود الطالب': grade.student ? grade.student.studentId : '-',
+                    'المجموعة': grade.group ? grade.group.name : 'بدون مجموعة',
+                    'عنوان الاختبار': grade.quiz ? grade.quiz.title : 'اختبار محذوف',
+                    'الدرجة': `${grade.score} / ${grade.totalPoints}`,
+                    'النسبة المئوية': `${percentage}%`,
+                    'الحالة': statusText,
+                    'تاريخ التسليم': new Date(grade.createdAt).toLocaleDateString('ar-EG')
+                };
+            });
+
+            // Create worksheet
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // Set RTL formatting for the worksheet if possible
+            if(!ws['!cols']) ws['!cols'] = [];
+            for (let i = 0; i < 8; i++) ws['!cols'][i] = { wch: 20 };
+
+            // Create workbook and append worksheet
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "نتائج الطلاب");
+
+            // Save the file
+            XLSX.writeFile(wb, "تقرير_نتائج_الطلاب.xlsx");
+            showNotification('تم تحميل التقرير بنجاح', 'success');
         }
     </script>
 </body>

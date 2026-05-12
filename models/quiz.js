@@ -34,9 +34,19 @@ const quizSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
+    duration: {
+        type: Number,
+        default: 30,
+        description: 'Quiz duration in minutes'
+    },
     isActive: {
         type: Boolean,
         default: true
+    },
+    accessCode: {
+        type: String,
+        required: true,
+        unique: true
     },
     submissions: [{
         type: mongoose.Schema.Types.ObjectId,

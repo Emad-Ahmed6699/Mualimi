@@ -23,6 +23,39 @@ const quizSubmissionSchema = new mongoose.Schema({
     submittedAt: {
         type: Date,
         default: Date.now
+    },
+    cheatingFlags: {
+        type: Boolean,
+        default: false
+    },
+    cheatingDetails: {
+        type: String,
+        default: ''
+    },
+    tabSwitchAttempts: {
+        type: Number,
+        default: 0
+    },
+    windowBlurAttempts: {
+        type: Number,
+        default: 0
+    },
+    timeoutFlag: {
+        type: Boolean,
+        default: false
+    },
+    warnings: [{
+        type: String,
+        timestamp: Date
+    }],
+    isEarlySubmit: {
+        type: Boolean,
+        default: false
+    },
+    earlySubmitReason: String,
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
 });
 
