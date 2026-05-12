@@ -48,7 +48,7 @@ async function loadDashboardStats() {
     const role = localStorage.getItem('mualimi_role') || 'student';
     
     try {
-        if (role === 'teacher' && (window.location.pathname.includes('teacher-dashboard') || window.location.pathname.endsWith('/'))) {
+        if (role === 'teacher' && (window.location.pathname.includes('teacher/dashboard') || window.location.pathname.includes('teacher-dashboard') || window.location.pathname.endsWith('/'))) {
             // Fetch All necessary data
             const [studentsRes, quizzesRes, gradesRes] = await Promise.all([
                 api.getAllStudents(),
@@ -86,7 +86,7 @@ async function loadDashboardStats() {
 
             // Load last quizzes into table
             renderDashboardQuizzesTable(quizzesRes.data || []);
-        } else if (role === 'student' && window.location.pathname.includes('student-dashboard')) {
+        } else if (role === 'student' && (window.location.pathname.includes('student/dashboard') || window.location.pathname.includes('student-dashboard'))) {
             // Student Stats
             const quizCountEl = document.getElementById('active-quizzes-count');
             const response = await api.getActiveQuizzes();
