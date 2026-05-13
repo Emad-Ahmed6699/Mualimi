@@ -1,5 +1,5 @@
 // Mualimi - Main JavaScript Logic
-const API_URL = '/api'; 
+const API_URL = 'http://localhost:5000/api';
 // Helper to get logged in user info
 const getUserId = () => localStorage.getItem('mualimi_user_id') || localStorage.getItem('mualimi_student_id');
 const getUserRole = () => localStorage.getItem('mualimi_role');
@@ -35,7 +35,7 @@ window.showNotification = (message, type = 'success') => {
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
-    
+
     container.appendChild(toast);
     setTimeout(() => {
         const bsAlert = bootstrap.Alert.getOrCreateInstance(toast);
@@ -46,7 +46,7 @@ window.showNotification = (message, type = 'success') => {
 // Load dashboard statistics
 async function loadDashboardStats() {
     const role = localStorage.getItem('mualimi_role') || 'student';
-    
+
     try {
         if (role === 'teacher' && (window.location.pathname.includes('teacher/dashboard') || window.location.pathname.includes('teacher-dashboard') || window.location.pathname.endsWith('/'))) {
             // Fetch All necessary data
@@ -64,7 +64,7 @@ async function loadDashboardStats() {
 
             if (totalStudentsEl) totalStudentsEl.innerText = studentsRes.count || 0;
             if (activeQuizzesEl) activeQuizzesEl.innerText = (quizzesRes.data || []).filter(q => new Date(q.endDate) > new Date()).length;
-            
+
             // Calculate Average Grade
             const grades = gradesRes.data || [];
             if (avgGradeEl) {
@@ -174,8 +174,8 @@ async function initGroupManagement() {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            const filtered = allGroups.filter(g => 
-                g.name.toLowerCase().includes(term) || 
+            const filtered = allGroups.filter(g =>
+                g.name.toLowerCase().includes(term) ||
                 (g.course && g.course.toLowerCase().includes(term))
             );
             renderGroups(filtered);
@@ -195,11 +195,11 @@ async function initGroupManagement() {
             }
 
             try {
-                const groupData = { 
-                    name, 
-                    description: course, 
-                    grade, 
-                    teacher: getUserId() 
+                const groupData = {
+                    name,
+                    description: course,
+                    grade,
+                    teacher: getUserId()
                 };
                 await api.createGroup(groupData);
                 showNotification(`تم إنشاء مجموعة "${name}" بنجاح`);
@@ -248,7 +248,7 @@ function renderGroups(groups) {
             const groupId = btn.dataset.id;
             const groupName = btn.dataset.name;
             const groupGrade = btn.dataset.grade;
-            
+
             document.getElementById('viewStudentsModalLabel').innerText = `طلاب مجموعة: ${groupName}`;
             const modal = new bootstrap.Modal(document.getElementById('viewStudentsModal'));
             modal.show();
@@ -259,7 +259,7 @@ function renderGroups(groups) {
                     const group = response.data;
                     const tbody = document.getElementById('group-students-body');
                     tbody.innerHTML = '';
-                    
+
                     if (!group.students || group.students.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="4" class="text-center">لا يوجد طلاب في هذه المجموعة</td></tr>';
                     } else {
@@ -331,7 +331,7 @@ async function initStudentQuizzes() {
     try {
         // First, get student info to find their group
         let groupId = localStorage.getItem('mualimi_student_group');
-        
+
         if (!groupId && studentId) {
             try {
                 const studentRes = await api.getStudent(studentId);
@@ -353,12 +353,12 @@ async function initStudentQuizzes() {
         }
 
         const gradesRes = studentId ? await api.getStudentGrades(studentId) : Promise.resolve({ data: [] });
-        
+
         const quizzes = quizzesRes.data || [];
         const studentGrades = gradesRes.data || [];
-        
+
         container.innerHTML = '';
-        
+
         if (quizzes.length === 0) {
             container.innerHTML = '<div class="text-center py-5"><p class="text-muted">لا توجد اختبارات حالياً</p></div>';
             return;
@@ -373,7 +373,7 @@ async function initStudentQuizzes() {
                     <h6 class="fw-bold mb-1">${quiz.title}</h6>
                     <p class="small text-muted mb-0"><i class="fas fa-layer-group me-1"></i> ${quiz.group ? quiz.group.name : 'عام'}</p>
                 </div>
-                ${hasTaken ? 
+                ${hasTaken ?
                     `<button class="btn btn-success btn-sm rounded-pill px-4" disabled>تم الحل <i class="fas fa-check-circle ms-1"></i></button>` :
                     `<button class="btn btn-primary btn-sm rounded-pill px-4 start-quiz" data-id="${quiz._id}">ابدأ</button>`
                 }
@@ -385,20 +385,20 @@ async function initStudentQuizzes() {
             btn.addEventListener('click', () => {
                 const quizId = btn.dataset.id;
                 const loggedInStudentId = localStorage.getItem('mualimi_student_id');
-                
+
                 // If student is already logged in, show access code modal
                 if (loggedInStudentId) {
                     document.getElementById('quiz-access-code').value = '';
                     document.getElementById('access-code-error').style.display = 'none';
                     document.getElementById('access-code-error').textContent = '';
-                    
+
                     const accessModal = new bootstrap.Modal(document.getElementById('quizAccessModal'));
                     accessModal.show();
-                    
+
                     document.getElementById('verify-access-btn').onclick = async () => {
                         await verifyQuizAccess(quizId);
                     };
-                    
+
                     // Allow Enter key to submit
                     document.getElementById('quiz-access-code').onkeypress = (e) => {
                         if (e.key === 'Enter') {
@@ -411,7 +411,7 @@ async function initStudentQuizzes() {
                 // If not logged in, show login modal first
                 const loginModal = new bootstrap.Modal(document.getElementById('studentLoginModal'));
                 loginModal.show();
-                
+
                 const verifyBtn = document.getElementById('verify-student-btn');
                 verifyBtn.onclick = async () => {
                     const name = document.getElementById('verify-name').value;
@@ -438,9 +438,9 @@ async function initStudentQuizzes() {
                                 const quizRes = await api.getQuiz(quizId);
                                 const regResponse = await api.request('/auth/student/signup', {
                                     method: 'POST',
-                                    body: JSON.stringify({ 
+                                    body: JSON.stringify({
                                         name, studentId, email, age, password,
-                                        grade: quizRes.data.group ? quizRes.data.group.grade : '1' 
+                                        grade: quizRes.data.group ? quizRes.data.group.grade : '1'
                                     })
                                 });
                                 student = regResponse.data;
@@ -460,17 +460,17 @@ async function initStudentQuizzes() {
                             if (student.group) {
                                 localStorage.setItem('mualimi_student_group', student.group._id);
                             }
-                            
+
                             // Now show access code modal
                             loginModal.hide();
-                            
+
                             document.getElementById('quiz-access-code').value = '';
                             document.getElementById('access-code-error').style.display = 'none';
                             document.getElementById('access-code-error').textContent = '';
-                            
+
                             const accessModal = new bootstrap.Modal(document.getElementById('quizAccessModal'));
                             accessModal.show();
-                            
+
                             document.getElementById('verify-access-btn').onclick = async () => {
                                 await verifyQuizAccess(quizId);
                             };
@@ -481,29 +481,29 @@ async function initStudentQuizzes() {
                 };
             });
         });
-    } catch (e) {}
+    } catch (e) { }
 }
 
 async function verifyQuizAccess(quizId) {
     const accessCode = document.getElementById('quiz-access-code').value.trim();
     const errorEl = document.getElementById('access-code-error');
-    
+
     if (!accessCode) {
         errorEl.textContent = 'يرجى إدخال رمز الدخول';
         errorEl.style.display = 'block';
         return;
     }
-    
+
     try {
         const response = await api.verifyQuizAccess(quizId, accessCode);
         if (response.success) {
             // Store quiz data for use in take-quiz page
             sessionStorage.setItem('current-quiz-data', JSON.stringify(response.data));
-            
+
             // Close modal and redirect
             const modal = bootstrap.Modal.getInstance(document.getElementById('quizAccessModal'));
             if (modal) modal.hide();
-            
+
             window.location.href = `take-quiz.html?id=${quizId}`;
         }
     } catch (error) {
@@ -516,7 +516,7 @@ async function initStudentDashboard() {
     const studentName = localStorage.getItem('mualimi_student_name') || 'طالب';
     const headerName = document.querySelector('.student-header h4');
     if (headerName) headerName.textContent = `مرحباً، ${studentName}`;
-    
+
     const studentId = localStorage.getItem('mualimi_student_id');
     const quizCountEl = document.getElementById('active-quizzes-count');
 
@@ -529,10 +529,10 @@ async function initStudentDashboard() {
 
             const quizzes = quizzesRes.data || [];
             const grades = gradesRes.data || [];
-            
+
             // Count quizzes that haven't been taken yet
             const untakenCount = quizzes.filter(q => !grades.some(g => g.quiz && g.quiz._id === q._id)).length;
-            
+
             quizCountEl.innerText = `لديك ${untakenCount} اختبار جديد`;
         } catch (e) {
             console.error('Dashboard Stats Error:', e);
@@ -563,7 +563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Sync Stats
     loadDashboardStats();
-    
+
     // Init Modules
     initGroupManagement();
     initStudentQuizzes();

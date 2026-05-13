@@ -1,5 +1,5 @@
 // API Client for Mualimi
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 class MualimAPI {
     constructor() {
@@ -61,7 +61,7 @@ class MualimAPI {
             method: 'DELETE',
         });
     }
-    
+
     async verifyStudent(data) {
         return this.request('/students/verify', {
             method: 'POST',
