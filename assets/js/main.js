@@ -1,5 +1,5 @@
 // Mualimi - Main JavaScript Logic
-const API_URL = 'http://localhost:5000/api';
+const API_URL = '/api';
 // Helper to get logged in user info
 const getUserId = () => localStorage.getItem('mualimi_user_id') || localStorage.getItem('mualimi_student_id');
 const getUserRole = () => localStorage.getItem('mualimi_role');
@@ -11,7 +11,7 @@ window.logout = () => {
     localStorage.removeItem('mualimi_user_name');
     localStorage.removeItem('mualimi_student_id');
     localStorage.removeItem('mualimi_student_name');
-    window.location.href = '/login.html';
+    window.location.href = '/pages/auth/login.html';
 };
 
 // Generic Notification System
@@ -129,7 +129,7 @@ function renderDashboardQuizzesTable(quizzes) {
     // Edit Event
     tableBody.querySelectorAll('.edit-quiz-btn').forEach(btn => {
         btn.onclick = () => {
-            window.location.href = `pages/teacher/quiz-creator.html?id=${btn.dataset.id}`;
+            window.location.href = `/pages/teacher/quiz-creator.html?id=${btn.dataset.id}`;
         };
     });
 
