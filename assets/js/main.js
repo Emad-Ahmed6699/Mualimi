@@ -1,5 +1,5 @@
 // Mualimi - Main JavaScript Logic
-const API_URL = '/api';
+const API_URL = '/api'; 
 // Helper to get logged in user info
 const getUserId = () => localStorage.getItem('mualimi_user_id') || localStorage.getItem('mualimi_student_id');
 const getUserRole = () => localStorage.getItem('mualimi_role');
